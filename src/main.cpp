@@ -202,8 +202,8 @@ int main () {
                 //update enemy position
                 for(auto& foe: enemyVector){
                     foe.updateMovement(protag.hitbox.x,protag.hitbox.y);
-                    for(const auto& plat: platform_vector){
-                        foe.collisionHandler(&plat.hitbox);
+                    for(auto& plat: platform_vector){
+                        foe.collisionHandler(&plat);
                     }
                     //set the destruction bit
                     if(!foe.checkInSquare())

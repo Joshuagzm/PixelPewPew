@@ -11,6 +11,9 @@
 #include "functs.h"
 #include <boost/functional/hash.hpp>
 
+//forward declarations
+class entity;
+
 namespace std {
     template <>
     struct hash<boost::uuids::uuid> {
@@ -34,7 +37,7 @@ namespace std {
 
 //header file containing the functions and structure declarations for the grid layout of the screen
 //key: entity ID, value: hitbox of entity
-typedef std::unordered_map<boost::uuids::uuid, Rectangle*> gridCell;
+typedef std::unordered_map<boost::uuids::uuid, entity*> gridCell;
 //key: pair representing the coordinates, value: map of ID'd entities within the cell
 extern std::unordered_map<std::pair<int, int>, gridCell> gridContainer;
 

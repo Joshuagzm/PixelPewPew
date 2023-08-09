@@ -54,7 +54,7 @@ int entity::collisionOrder(float * x, float * y)
     }
 }
 
-int entity::collisionHandler(const Rectangle * plat){
+int entity::collisionHandler(entity * obj){
     //Base: check if there is a collision between the object and the next position
     //Generate list of rectangles to compare against 
     std::vector<Rectangle> rectProjections;
@@ -62,7 +62,7 @@ int entity::collisionHandler(const Rectangle * plat){
     int maxAttempts = 100;
     int attempt = 0;
     bool didCollide = false;
-    bool entity_collision = CheckCollisionRecs(*plat, this->hitbox);
+    bool entity_collision = CheckCollisionRecs(obj->hitbox, this->hitbox);
     int dir = 1;
     //if there is, move the hitbox back towards the previous position
 
@@ -72,7 +72,7 @@ int entity::collisionHandler(const Rectangle * plat){
         didCollide = true;
         //check for fast teleporty movements
         //find the direction of movement (current x,y - prev x,y)
-        boxCollision = GetCollisionRec(*plat, this->hitbox);
+        boxCollision = GetCollisionRec(obj->hitbox, this->hitbox);
         if(boxCollision.width <= 0 || boxCollision.height <= 0){
             return 1;
         }
@@ -119,7 +119,7 @@ int entity::collisionHandler(const Rectangle * plat){
             default:
                 std::cout<<"COLLISION ORDER FAILED"<<std::endl;
         }
-        entity_collision = CheckCollisionRecs(*plat, this->hitbox);
+        entity_collision = CheckCollisionRecs(obj->hitbox, this->hitbox);
         //queue operations: X movement and Y movement
         //execute smallest operation first
         //move x,y back to exit collision
@@ -207,7 +207,7 @@ int entity::updateGridOccupation()
     //register cells
     for (const auto& cell : cellsToAdd){
         if(auto itGridCell = gridContainer.find(cell); itGridCell != gridContainer.end()){
-            itGridCell->second.insert(std::make_pair(this->entityID, &this->hitbox));
+            itGridCell->second.insert(std::make_pair(this->entityID, this));
 
             //DEBUG print all entities within currently occupied cells
             /*
@@ -223,9 +223,9 @@ int entity::updateGridOccupation()
     return 0;
 }
 
-std::vector<Rectangle *> entity::checkCloseEntities()
+std::vector<entity *> entity::checkCloseEntities()
 {
-    std::vector<Rectangle *> closeEntities;
+    std::vector<entity *> closeEntities;
     //check grid cells for entities that are NOT self
     for (const auto& cell : gridCellsCurrent){
         //search through the grid to find an ID that matches the cell coords

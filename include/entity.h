@@ -57,6 +57,10 @@ class entity {
         bool xLock {false};
         int gravity {2};
 
+        //collision status
+        bool isSolid {false};
+        bool isTouchDamage {false};
+
         int faceDirectionX {left};//integer to indicate facing direction in the X direction
         int faceDirectionY {0};//integer to indicate facing direction in the Y direction (unused maybe)
 
@@ -66,7 +70,7 @@ class entity {
 
         //class methods
         int applyGravity(int gravity);
-        int collisionHandler(const Rectangle * plat);
+        int collisionHandler(entity * plat);
         int collisionOrder(float * x, float * y);
 
         //set speed methods
@@ -79,7 +83,7 @@ class entity {
         //check current grid occupation
         int updateGridOccupation();
         pairSetType gridCellsCurrent{&comparePairs};
-        std::vector<Rectangle *> checkCloseEntities();
+        std::vector<entity *> checkCloseEntities();
         //related hitboxes
 
 };
