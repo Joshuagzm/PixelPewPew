@@ -4,22 +4,58 @@ int player::initLoop()
 {
     this->prevX = this->hitbox.x;
     this->prevY = this->hitbox.y;
-    this->speedX = 0;
     this->abilityCooldown -= 1;
+    if(this->invulnerableTimer > 0){
+        --this->invulnerableTimer; 
+        this->isInvulnerable = true;
+        this->entColor = BLUE;
+    }else{
+        this->isInvulnerable = false;
+        this->entColor = WHITE;
+    }
+
+    if(this->inertiaX > 0){
+        this->inertiaX = cappedSubtraction(this->inertiaX, this->inertiaDecay, 0); //decay inertia towards 0
+    }else if (this->inertiaX < 0){
+        this->inertiaX = cappedAddition(this->inertiaX, this->inertiaDecay, 0); //decay inertia towardsd 0
+    }
+    if(this->inertiaY > 0){
+        this->inertiaY = cappedSubtraction(this->inertiaY, this->inertiaDecay, 0); //decay inertia towards 0
+    }else if (this->inertiaY < 0){
+        this->inertiaY = cappedAddition(this->inertiaY, this->inertiaDecay, 0); //decay inertia towardsd 0
+    }
+
     return(0);
+}
+
+int player::initPlayer()
+{
+    this->hitbox.x = 100;
+    this->hitbox.y = 100;
+    this->hitbox.width = 20;
+    this->hitbox.height = 20;
+    this->halfheight = this->height/2;
+    this->halfWidth = this->height/2;
+    this->speedX = 5;
+    this->speedY = 0;
+    this->jumpMax = 2;
+    this->maxHp = 3;
+    this->hp = this->maxHp;
+
+    return 0;
 }
 
 //apply speedX
 int player::moveX(){
     //TODO: Add acceleration?
-    this->hitbox.x += this->speedX;
+    this->hitbox.x += this->speedX + this->inertiaX;
     return 0;
 }
 
 //apply speedY
 int player::moveY(){
     this->applyGravity(this->gravity);
-    this->hitbox.y += this->speedY;
+    this->hitbox.y += this->speedY + this->inertiaY;
     return 0;
 }
 

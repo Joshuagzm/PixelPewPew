@@ -1,7 +1,65 @@
 #include "include/head.h"
 
+////
+//LEVELS
+////
+void levelDead(){
+//draw
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    std::vector<const char *> deathMessages;
+    deathMessages.push_back("Sucks to suck.");
+    deathMessages.push_back("You died.");
+    deathMessages.push_back("Weak. Noob.");
+    deathMessages.push_back("Maybe you should sleep.");
+
+    //getting size and position of message, should be centered in the top third
+    float messasgeSize {20};
+    float promptSize {20};
+
+    if(prevState != gameState){
+        randMsgIndex = rand() % deathMessages.size();
+    }
+    
+    //text definitions
+    const char * deathMessage = deathMessages.at(randMsgIndex);
+    const char * promptMessage = "return to menu";
+
+    Vector2 messasgeDimensions { MeasureTextEx(GetFontDefault(),deathMessage, static_cast<float>(messasgeSize), 2)};
+    Vector2 promptDimensions { MeasureTextEx(GetFontDefault(),promptMessage, static_cast<float>(promptSize), 2)};
+
+    //determine the position 
+    float messasgeX {screenWidth/2 - messasgeDimensions.x/2};
+    float messasgeY {screenHeight/3};
+    float promptX   {screenWidth/2 - promptDimensions.x/2};
+    float promptY   {screenHeight - 100};
+
+    auto messasgeColor{RED};
+    auto promptColor{WHITE};
+
+    Vector2 mousePos{GetMousePosition()};
+
+    //check for hover and click events
+    if(isMouseInRect(mousePos, promptX, promptY, promptDimensions)){
+        promptColor = GREEN;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            gameState = TITLE;
+        }
+    }else{
+        promptColor = WHITE;
+    }
+
+    //winCondition
+    DrawText(TextFormat(deathMessage), messasgeX, messasgeY, messasgeSize, messasgeColor);
+    DrawText(TextFormat(promptMessage), promptX, promptY, promptSize, promptColor);
+
+    EndDrawing();
+    prevState = gameState;
+}
+
 void levelMainMenu(){
-     //draw
+    //draw
     BeginDrawing();
     ClearBackground(BLACK);
 
@@ -53,21 +111,25 @@ void levelMainMenu(){
     DrawText(TextFormat(mainMenuQuit), quitX, quitY, optionSize, quitColor);
 
     EndDrawing();
-
-    //check for option select
+    prevState = gameState;
 }
 
+////
+//MAIN
+//// 
 int main () {
     //INITIALISATION
     //initialise screen
     InitWindow(screenWidth, screenHeight, "A platformer?");
     SetTargetFPS(targetFPS);
 
+    //set seed
+    srand((unsigned) time(NULL));
+
     //grid initialise
     gridCell emptyCell;
     for (auto& cell : pairInterpolator(std::make_pair(getCurrentCol(0),getCurrentRow(0)), std::make_pair(getCurrentCol(screenWidth), getCurrentRow(screenHeight))))
     {
-        std::cout<<"INSERTING: [" << cell.first << "," << cell.second << "]\n"; 
         gridContainer.insert(std::make_pair(cell,emptyCell));
     }
 
@@ -78,6 +140,7 @@ int main () {
 
     //initialise player 
     player protag;
+    protag.initPlayer();
     
     //initialise platforms - FUNCT
     entity plat_1;
@@ -120,13 +183,17 @@ int main () {
                 //Initialisations
                 protag.initLoop();
 
-                //key event handling        
-                if(IsKeyDown(KEY_LEFT)){    protag.setSpeedX(-1*protag.baseSpeed); protag.faceDirectionX = protag.left;   }
-                if(IsKeyDown(KEY_RIGHT)){   protag.setSpeedX(1*protag.baseSpeed);  protag.faceDirectionX = protag.right;     }
-                //firing
-                if(IsKeyDown(KEY_Z)){
-                    protag.fireProjectile(&attackVector);
+                //Movement handling
+                if(IsKeyDown(KEY_LEFT)){
+                    protag.setSpeedX(-1*protag.baseSpeed); 
+                    protag.faceDirectionX = protag.left;   
+                }else if(IsKeyDown(KEY_RIGHT)){
+                    protag.setSpeedX(1*protag.baseSpeed);  
+                    protag.faceDirectionX = protag.right;
+                }else{
+                    protag.setSpeedX(0);
                 }
+
                 //jump
                 if(IsKeyPressed(KEY_SPACE)){
                     if(protag.jumpStock > 0){
@@ -134,14 +201,23 @@ int main () {
                         protag.jumpStock -= 1;
                     }
                 }
+                
+                //firing
+                if(IsKeyDown(KEY_Z)){
+                    protag.fireProjectile(&attackVector);
+                }
+
 
                 //UPDATE VALUES//
                 protag.moveX();
                 protag.moveY();
                 protag.screenBorder(screenHeight, screenWidth);
 
-                //player membership
+                //update grid membership
                 protag.updateGridOccupation();
+                for (auto& enemy: enemyVector){
+                    enemy.updateGridOccupation();
+                }
 
                 //check collision between the player and entities within its grid cell
                 for(const auto& closeEntity: protag.checkCloseEntities()){
@@ -181,6 +257,7 @@ int main () {
                 {
                     if(!it->isAlive)
                     {
+                        it->removeGridOccupation(it->gridCellsCurrent);
                         it = enemyVector.erase(it);
                     }else{
                         ++it;
@@ -193,6 +270,7 @@ int main () {
                 {
                     if(!atkIter->isAlive)
                     {
+                        atkIter->removeGridOccupation(atkIter->gridCellsCurrent);
                         atkIter = attackVector.erase(atkIter);
                     }else{
                         ++atkIter;
@@ -222,22 +300,13 @@ int main () {
                 } break;
                 case LEVEL1:
                 {
-                    //draw
+                    //draw - order of drawing determines layers
                     gamePaused = false;
+                    //platform border
+                    int platformBorder {2};
                     BeginDrawing();
                     ClearBackground(BLACK);
 
-                    DrawRectangle(protag.hitbox.x, protag.hitbox.y, protag.hitbox.width, protag.hitbox.height, WHITE);
-
-                    //draw world
-                    for(const auto& plat: platform_vector){
-                        DrawRectangle(plat.hitbox.x,plat.hitbox.y,plat.hitbox.width,plat.hitbox.height,GREEN);
-                    }
-
-                    //draw enemies
-                    for(const auto& foe: enemyVector){
-                        DrawRectangle(foe.hitbox.x,foe.hitbox.y,foe.hitbox.width,foe.hitbox.height,RED);
-                    }
 
                     //draw projectiles
                     for(auto& item: attackVector){
@@ -245,16 +314,41 @@ int main () {
                         DrawRectangle(item.hitbox.x,item.hitbox.y,item.hitbox.width,item.hitbox.height,YELLOW);
                     }
 
+                    //draw world
+                    for(const auto& plat: platform_vector){
+                        DrawRectangle(plat.hitbox.x-platformBorder,plat.hitbox.y,plat.hitbox.width+platformBorder*2,plat.hitbox.height,GREEN);
+                    }
+
+                    //draw enemies
+                    for(const auto& foe: enemyVector){
+                        DrawRectangle(foe.hitbox.x,foe.hitbox.y,foe.hitbox.width,foe.hitbox.height,RED);
+                    }
+
+                    DrawRectangle(protag.hitbox.x, protag.hitbox.y, protag.hitbox.width, protag.hitbox.height, protag.entColor);
+
+
                     //draw text
                     //winCondition
                     DrawText(TextFormat("Kills: %02i/%02i", killCount, winKillCount), 20, 20, 20, WHITE);
+                    DrawText(TextFormat("<3: %02i/%02i", protag.hp, protag.maxHp), screenWidth - 100, 20, 20, WHITE);
 
                     EndDrawing();
+                    prevState = gameState;
 
                     //check win condition
                     if(killCount >= winKillCount){
                         gameState = TITLE;
                     }
+                    //check death condition
+                    if(protag.hp <= 0){
+                        //go to death screen
+                        gameState = DEAD;
+                    }
+                } break;
+                case DEAD:
+                {
+                    levelDead();
+
                 } break;
                 case EXITGAME:
                 {

@@ -11,13 +11,20 @@ genericEnemy enemyDirector::spawnCommand()
     enemy.hitbox.height = 30;
     enemy.hitbox.width = 30;
 
-    //initial speeds
+    enemy.halfheight = enemy.hitbox.height/2;
+    enemy.halfWidth = enemy.hitbox.width/2;
+
+    //initial stats
     enemy.speedX = 1;
     enemy.speedY = 1;
-
     enemy.baseSpeed = 2;
-
     enemy.gravity = 1;
+
+    enemy.isSolid = false;
+    enemy.isTouchDamage = true;
+
+    enemy.updateGridOccupation();
+
 
     return(enemy);
 }

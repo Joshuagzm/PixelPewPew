@@ -27,18 +27,10 @@ class projectileAttack: public entity {
 
 class player: public entity {
     public:
-    player(){
-        hitbox.x = 100;
-        hitbox.y = 100;
-        hitbox.width = 20;
-        hitbox.height = 20;
-        halfheight = this->height/2;
-        speedX = 5;
-        speedY = 0;
-        jumpMax = 2;
-    }
+    int initPlayer();
     //variables
     int abilityCooldown {0};
+    bool animationLock {false};
     
 
     //class methods

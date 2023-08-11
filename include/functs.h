@@ -18,6 +18,7 @@ int getRelativeDir(float src, float dst);//gets the direction of incrementation 
 bool checkInBounds(float input, float lower, float upper);//checks if input is within bounds upper and lower (inclusive)
 std::vector<std::pair<int,int>> pairInterpolator(std::pair<int,int> in1, std::pair<int,int> in2);
 bool isMouseInRect(Vector2 mousePos, float rectX, float rectY, Vector2 rectDimensions);
-
+int cappedAddition(int currentVal, int addVal, int limit);
+int cappedSubtraction(int currentVal, int subtractVal, int limit);
 
 #endif

@@ -21,6 +21,15 @@ entity::entity()
     // this->updateGridOccupation();
 }
 
+//destructor
+void entity::killEntity()
+{
+    //removes grid occupation
+    std::cout<<"DESTROYING ENTITY\n";
+    this->isAlive = false;
+    this->removeGridOccupation(this->gridCellsCurrent);
+}
+
 //sets speedY
 int entity::setSpeedY(int modifier)
 {
@@ -47,7 +56,7 @@ int entity::applyGravity(int gravity){
 int entity::collisionOrder(float * x, float * y)
 {
     //resolve the smaller error first in attempt to minimise the number of resolutions
-    if(*x < *y){
+    if(*y > *x){
         return 1;
     }else{
         return 0;
@@ -77,47 +86,67 @@ int entity::collisionHandler(entity * obj){
             return 1;
         }
 
-        collisionInt = collisionOrder(&boxCollision.width, &boxCollision.height);
+        //FOR ISSOLID
+        if(obj->isSolid){
 
-        //stationary case handler
-        switch(collisionInt)
-        {
-            case(0):
-                if(this->hitbox.y == this->prevY){
-                    collisionInt = 1;
-                }
-                break;
+            collisionInt = collisionOrder(&boxCollision.width, &boxCollision.height);
 
-            case(1):
-                if(this->hitbox.x == this->prevX){
-                    collisionInt = 0;
-                }
-                break;
+            //stationary case handler
+            switch(collisionInt)
+            {
+                case(0):
+                    if(this->hitbox.y == this->prevY){
+                        collisionInt = 1;
+                    }
+                    break;
 
-        }
-        
+                case(1):
+                    if(this->hitbox.x == this->prevX){
+                        collisionInt = 0;
+                    }
+                    break;
 
-        switch(collisionInt)
-        {
-            //resolve y axis
-            case(0):
-                this->hitbox.y > this->prevY ? dir = -1 : dir = 1;
-                this->hitbox.y = this->hitbox.y + (boxCollision.height)*dir ;
-                // this->yLock = true;
-                this->speedY = 0;
-                if(this->jumpStock < this->jumpMax) this->jumpStock = this->jumpMax;
-                break;
+            }
+            
 
-            //resolve x axis
-            case(1):
-                this->hitbox.x > this->prevX ? dir = -1 : dir = 1;                
-                this->hitbox.x = this->hitbox.x + (boxCollision.width+1)*dir;
-                this->xLock = true;
-                this->speedX = 0;
-                break;
+            switch(collisionInt)
+            {
+                //resolve y axis
+                case(0):
+                    this->hitbox.y > this->prevY ? dir = -1 : dir = 1;
+                    this->hitbox.y = this->hitbox.y + (boxCollision.height)*dir ;
+                    // this->yLock = true;
+                    this->speedY = 0;
+                    if(this->jumpStock < this->jumpMax) this->jumpStock = this->jumpMax;
+                    break;
 
-            default:
-                std::cout<<"COLLISION ORDER FAILED"<<std::endl;
+                //resolve x axis
+                case(1):
+                    this->hitbox.x > this->prevX ? dir = -1 : dir = 1;                
+                    this->hitbox.x = this->hitbox.x + (boxCollision.width+2)*dir;
+                    this->xLock = true;
+                    this->speedX = 0;
+                    break;
+
+                default:
+                    std::cout<<"COLLISION ORDER FAILED"<<std::endl;
+            }
+        }if (obj->isTouchDamage){
+            //recoil direction
+            //hit on the right, recoil left
+            //take damage
+            if(!this->isInvulnerable){
+                --this->hp;
+                this->invulnerableTimer = targetFPS*1.5;
+                this->isInvulnerable = true;
+                
+            if(obj->hitbox.x + obj->halfWidth > this->hitbox.x + this->halfWidth){
+                this->inertiaX -= 10;
+            }else{
+                this->inertiaX += 10;
+            }
+            this->inertiaY -= 6;
+            }
         }
         entity_collision = CheckCollisionRecs(obj->hitbox, this->hitbox);
         //queue operations: X movement and Y movement
@@ -132,8 +161,11 @@ int entity::collisionHandler(entity * obj){
 
     if (!entity_collision){
         this->yLock = false;
-        this->xLock = false;
         this->speedX = 5;
+        if(this->speedX == 0)
+        {
+            this->xLock = false;
+        }
     }
 
     if(didCollide)
@@ -183,6 +215,21 @@ int entity::updateGridOccupation()
                         gridCellsCurrent.begin(), gridCellsCurrent.end(),
                         std::inserter(cellsToRemove, cellsToRemove.begin()));
 
+    removeGridOccupation(cellsToRemove);
+
+    //find cells to register to
+    std::set_difference(gridCellsCurrent.begin(), gridCellsCurrent.end(),
+                        gridCellsOld.begin(), gridCellsOld.end(),
+                        std::inserter(cellsToAdd, cellsToAdd.begin()));
+
+    //register cells
+    addGridOccupation(cellsToAdd);
+
+    return 0;
+}
+
+int entity::removeGridOccupation(pairSetType cellsToRemove){
+    //de-registers cells in the given pairsettype
     //de-register cells
     for (const auto& cell : cellsToRemove){
         //search for cell in gridContainer with the key {cell.first, cell.second}
@@ -198,13 +245,10 @@ int entity::updateGridOccupation()
         //if entityID is not found, then something here is broken and raise exception
     }
 
+    return 0;
+}
 
-    //find cells to register to
-    std::set_difference(gridCellsCurrent.begin(), gridCellsCurrent.end(),
-                        gridCellsOld.begin(), gridCellsOld.end(),
-                        std::inserter(cellsToAdd, cellsToAdd.begin()));
-
-    //register cells
+int entity::addGridOccupation(pairSetType cellsToAdd){
     for (const auto& cell : cellsToAdd){
         if(auto itGridCell = gridContainer.find(cell); itGridCell != gridContainer.end()){
             itGridCell->second.insert(std::make_pair(this->entityID, this));

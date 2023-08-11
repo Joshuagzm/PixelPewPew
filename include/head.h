@@ -58,11 +58,14 @@ class platform {
       int posY;
 };
 
+int randMsgIndex {0};
+
 std::vector<entity> platform_vector;
 std::vector<projectileAttack> attackVector;
 std::vector<genericEnemy> enemyVector;
 bool collision;
-enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3};
+enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, DEAD, DUMMY};
+screen prevState {DUMMY};
 screen gameState {TITLE};
 
 bool gameReplay {true};

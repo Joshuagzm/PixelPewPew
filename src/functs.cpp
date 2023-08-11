@@ -69,3 +69,19 @@ bool isMouseInRect(Vector2 mousePos, float rectX, float rectY, Vector2 rectDimen
 
     
 }
+
+int cappedSubtraction(int currentVal, int subtractVal, int limit){
+    if(currentVal - subtractVal < limit){
+        return limit;
+    }else{
+        return currentVal - subtractVal;
+    }
+}
+
+int cappedAddition(int currentVal, int addVal, int limit){
+    if(currentVal + addVal > limit){
+        return limit;
+    }else{
+        return currentVal + addVal;
+    }
+}

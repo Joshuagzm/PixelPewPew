@@ -43,22 +43,32 @@ class entity {
         int width {0};
         int height {0};
         int halfheight {0};
+        int halfWidth {0};
         int mass {10};
         Rectangle hitbox;
+        Color entColor{WHITE};
 
         //movement and status
-        bool isAlive = true;//when false, delete the object
-        int jumpMax {1};
-        int jumpStock {0};
-        int speedX {0};
-        int speedY {0};
-        int baseSpeed {5};        
-        bool yLock {false};
-        bool xLock {false};
-        int gravity {2};
+        bool isAlive = true;    //when false, delete the object
+        int jumpMax {1};        //max jumps
+        int jumpStock {0};      //jumps available
+        int speedX {0};         //internal movement speed in x direction
+        int speedY {0};         //internal movement speed in y direction
+        int inertiaX {0};       //externally caused decaying movement speed in x direction
+        int inertiaY {0};       //externally caused decaying movement speed in y direction
+        int inertiaDecay {1};   //inertia decay
+        int baseSpeed {5};      //internal base movement speed
+        bool yLock {false};     //locks y movement
+        bool xLock {false};     //locks x movemnet
+        int gravity {2};        //gravitational acceleration
+
+        int hp {0};             //current hp
+        int maxHp{0};           //max hp
+        int invulnerableTimer{0};
+        bool isInvulnerable {false};    
 
         //collision status
-        bool isSolid {false};
+        bool isSolid {true};
         bool isTouchDamage {false};
 
         int faceDirectionX {left};//integer to indicate facing direction in the X direction
@@ -84,6 +94,9 @@ class entity {
         int updateGridOccupation();
         pairSetType gridCellsCurrent{&comparePairs};
         std::vector<entity *> checkCloseEntities();
+        int removeGridOccupation(pairSetType cellsToRemove);
+        int addGridOccupation(pairSetType cellsToAdd);
+        void killEntity();
         //related hitboxes
 
 };
