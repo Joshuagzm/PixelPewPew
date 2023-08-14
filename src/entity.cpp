@@ -249,17 +249,12 @@ int entity::removeGridOccupation(pairSetType cellsToRemove){
 }
 
 int entity::addGridOccupation(pairSetType cellsToAdd){
+    //for each cell to add to
     for (const auto& cell : cellsToAdd){
+        //finds the iterator to the cell
         if(auto itGridCell = gridContainer.find(cell); itGridCell != gridContainer.end()){
+            //inserts the entity
             itGridCell->second.insert(std::make_pair(this->entityID, this));
-
-            //DEBUG print all entities within currently occupied cells
-            /*
-            std::cout<<"ENTITIES IN PLAYER CELLS: \n";
-            for (auto& ent : itGridCell->second){
-                std::cout << boost::uuids::to_string(ent.first)<<std::endl;
-            }std::cout<<std::endl;
-            */
         }else{
             //raise exception
         }
@@ -271,10 +266,10 @@ std::vector<entity *> entity::checkCloseEntities()
 {
     std::vector<entity *> closeEntities;
     //check grid cells for entities that are NOT self
-    for (const auto& cell : gridCellsCurrent){
+    for (const auto& cell : gridCellsCurrent){//for each of the cells that are currently occupied
         //search through the grid to find an ID that matches the cell coords
         if(auto itGridCell = gridContainer.find(cell); itGridCell != gridContainer.end()){
-            //loop through the cell contents
+            //loop through the entries within the found cell
             for (const auto& coordMember : itGridCell->second){
                 //Check if the hitbox exists, if not, then append it
                 if (std::find(closeEntities.begin(), closeEntities.end(), coordMember.second) == closeEntities.end()

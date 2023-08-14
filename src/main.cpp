@@ -3,6 +3,66 @@
 ////
 //LEVELS
 ////
+void level1(player* protag, int* killCount, int* winCount){
+    //on transition
+    if(prevState != gameState){
+        //initialise platforms - FUNCT
+        resetWorld(&platformVector, &enemyVector, &attackVector);
+        registerPlatform(&platformVector, 500,450,200,20);
+        registerPlatform(&platformVector, 600,580,200,20);
+        registerPlatform(&platformVector, 600,350,200,20);
+        registerPlatform(&platformVector, 200,500,300,20);
+        registerPlatform(&platformVector, 400,150,200,20);
+        *winCount = 10;
+        *killCount = 0;
+        protag->initPlayer();
+    
+    }
+    //draw - order of drawing determines layers
+    gamePaused = false;
+    //platform border
+    int platformBorder {2};
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+
+    //draw projectiles
+    for(auto& item: attackVector){
+        item.moveProjectile();
+        DrawRectangle(item.hitbox.x,item.hitbox.y,item.hitbox.width,item.hitbox.height,YELLOW);
+    }
+
+    //draw world
+    for(const auto& plat: platformVector){
+        DrawRectangle(plat.hitbox.x-platformBorder,plat.hitbox.y,plat.hitbox.width+platformBorder*2,plat.hitbox.height,GREEN);
+    }
+
+    //draw enemies
+    for(const auto& foe: enemyVector){
+        DrawRectangle(foe.hitbox.x,foe.hitbox.y,foe.hitbox.width,foe.hitbox.height,RED);
+    }
+
+    DrawRectangle(protag->hitbox.x, protag->hitbox.y, protag->hitbox.width, protag->hitbox.height, protag->entColor);
+
+
+    //draw text
+    //winCondition
+    DrawText(TextFormat("Kills: %02i/%02i", *killCount, *winCount), 20, 20, 20, WHITE);
+    DrawText(TextFormat("Health: %02i/%02i", protag->hp, protag->maxHp), screenWidth - 150, 20, 20, WHITE);
+
+    EndDrawing();
+
+    //check win condition
+    if(*killCount >= *winCount){
+        requestState = TITLE;
+    }
+    //check death condition
+    if(protag->hp <= 0){
+        //go to death screen
+        requestState = DEAD;
+    }
+}
+
 void levelDead(){
 //draw
     BeginDrawing();
@@ -20,7 +80,6 @@ void levelDead(){
 
     if(prevState != gameState){
         randMsgIndex = rand() % deathMessages.size();
-        prevState = gameState;
     }
     
     //text definitions
@@ -45,7 +104,7 @@ void levelDead(){
     if(isMouseInRect(mousePos, promptX, promptY, promptDimensions)){
         promptColor = GREEN;
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            gameState = TITLE;
+            requestState = TITLE;
         }
     }else{
         promptColor = WHITE;
@@ -91,7 +150,7 @@ void levelMainMenu(){
     if(isMouseInRect(mousePos, startX, startY, startOptionDimensions)){
         startColor = GREEN;
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            gameState = LEVEL1;
+            requestState = LEVEL1;
         }
     }else{
         startColor = WHITE;
@@ -99,7 +158,7 @@ void levelMainMenu(){
     if(isMouseInRect(mousePos, quitX, quitY, quitOptionDimensions)){
         quitColor = GREEN;
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            gameState = EXITGAME;
+            requestState = EXITGAME;
         }
     }else{
         quitColor = WHITE;
@@ -141,205 +200,134 @@ int main () {
     //initialise player 
     player protag;
     protag.initPlayer();
-    
-    //initialise platforms - FUNCT
-    entity plat_1;
-    entity plat_2;
-    entity plat_3;
-    entity plat_4;
-    entity plat_5;
 
-    plat_1.hitbox = {500,450,200,20};
-    platform_vector.push_back(plat_1);
-    
-    plat_2.hitbox = {600,580,200,20};
-    platform_vector.push_back(plat_2);
-    
-    plat_3.hitbox = {600,350,200,20};
-    platform_vector.push_back(plat_3);
+    //initialise win condition
+    int winCount {10};
+    int killCount {0};
 
-    plat_4.hitbox = {200,500,300,20};
-    platform_vector.push_back(plat_4);
+    //GAME LOOP
+    while (WindowShouldClose() == false && gameExitConfirmed == false){
+        //testing for screen change detection
+        // if(prevState != gameState){
+        // }
 
-    plat_5.hitbox = {400,150,200,20};
-    platform_vector.push_back(plat_5);
+        //Code that should run during gameplay
+        if(gamePaused != true){
+            //Initialisations
+            protag.initLoop();
 
-    for (auto& plat : platform_vector){
-        plat.updateGridOccupation();
-    }
+            //Movement handling
+            protag.checkMoveInput();
+            protag.checkAttackInput(&attackVector);
 
-    while (gameReplay){
-        gameReplay = false;
+            //UPDATE VALUES//
+            protag.moveX();
+            protag.moveY();
+            protag.screenBorder(screenHeight, screenWidth);
 
-        //initialise win condition
-        int winKillCount {10};
-        int killCount {0};
+            //update grid membership
+            protag.updateGridOccupation();
+            for (auto& enemy: enemyVector){
+                enemy.updateGridOccupation();
+            }
 
-        //GAME LOOP
-        while (WindowShouldClose() == false && gameExitConfirmed == false){
+            //check collision between the player and entities within its grid cell
+            for(const auto& closeEntity: protag.checkCloseEntities()){
+                protag.collisionHandler(closeEntity);
+            }
 
-            //Code that should run during gameplay
-            if(gamePaused != true){
-                //Initialisations
-                protag.initLoop();
-
-                //Movement handling
-                protag.checkMoveInput();
-                protag.checkAttackInput(&attackVector);
-
-                //UPDATE VALUES//
-                protag.moveX();
-                protag.moveY();
-                protag.screenBorder(screenHeight, screenWidth);
-
-                //update grid membership
-                protag.updateGridOccupation();
+            //check projectile collisions
+            for(auto& proj: attackVector){
+                for (const auto& plat: platformVector){
+                    if(CheckCollisionRecs(proj.hitbox, plat.hitbox)){
+                        proj.isAlive = false;
+                        break;
+                    }
+                }
                 for (auto& enemy: enemyVector){
-                    enemy.updateGridOccupation();
-                }
-
-                //check collision between the player and entities within its grid cell
-                for(const auto& closeEntity: protag.checkCloseEntities()){
-                    protag.collisionHandler(closeEntity);
-                }
-
-                //check projectile collisions
-                for(auto& proj: attackVector){
-                    for (const auto& plat: platform_vector){
-                        if(CheckCollisionRecs(proj.hitbox, plat.hitbox)){
-                            proj.isAlive = false;
-                            break;
-                        }
-                    }
-                    for (auto& enemy: enemyVector){
-                        if(CheckCollisionRecs(proj.hitbox, enemy.hitbox)){
-                            proj.isAlive = false;
-                            enemy.isAlive = false;
-                            killCount += 1;
-                            break;
-                        }
-                    }
-                }
-
-                //update spawn timer
-                enemyDir.spawnTimer += 1;
-                if(enemyDir.spawnTimer >= enemyDir.spawnThresh)
-                {
-                    enemyVector.push_back(enemyDir.spawnCommand());
-                    enemyDir.spawnTimer = 0;
-                    std::cout<<enemyVector.size()<<std::endl;
-                }
-
-                //delete out of range enemies
-                std::vector<genericEnemy>::iterator it = enemyVector.begin();
-                while(it != enemyVector.end())
-                {
-                    if(!it->isAlive)
-                    {
-                        it->removeGridOccupation(it->gridCellsCurrent);
-                        it = enemyVector.erase(it);
-                    }else{
-                        ++it;
-                    }
-                }
-
-                //delete out of range enemies
-                std::vector<projectileAttack>::iterator atkIter = attackVector.begin();
-                while(atkIter != attackVector.end())
-                {
-                    if(!atkIter->isAlive)
-                    {
-                        atkIter->removeGridOccupation(atkIter->gridCellsCurrent);
-                        atkIter = attackVector.erase(atkIter);
-                    }else{
-                        ++atkIter;
-                    }
-                }
-
-                //update enemy position
-                for(auto& foe: enemyVector){
-                    foe.updateMovement(protag.hitbox.x,protag.hitbox.y);
-                    for(auto& plat: platform_vector){
-                        foe.collisionHandler(&plat);
-                    }
-                    //set the destruction bit
-                    if(!foe.checkInSquare())
-                    {
-                        foe.isAlive = false;
+                    if(CheckCollisionRecs(proj.hitbox, enemy.hitbox)){
+                        proj.isAlive = false;
+                        enemy.isAlive = false;
+                        killCount += 1;
+                        break;
                     }
                 }
             }
 
-            //game stage state machine
-            switch(gameState)
+            //update spawn timer
+            enemyDir.spawnTimer += 1;
+            if(enemyDir.spawnTimer >= enemyDir.spawnThresh)
             {
-                case TITLE:
+                enemyVector.push_back(enemyDir.spawnCommand());
+                enemyDir.spawnTimer = 0;
+                std::cout<<enemyVector.size()<<std::endl;
+            }
+
+            //delete out of range enemies
+            std::deque<genericEnemy>::iterator it = enemyVector.begin();
+            while(it != enemyVector.end())
+            {
+                if(!it->isAlive)
                 {
-                    levelMainMenu();
-                } break;
-                case LEVEL1:
+                    it->removeGridOccupation(it->gridCellsCurrent);
+                    it = enemyVector.erase(it);
+                }else{
+                    ++it;
+                }
+            }
+
+            //delete out of range enemies
+            std::deque<projectileAttack>::iterator atkIter = attackVector.begin();
+            while(atkIter != attackVector.end())
+            {
+                if(!atkIter->isAlive)
                 {
-                    //check transition
-                    if(prevState != gameState){
-                        protag.initPlayer();
-                        prevState = gameState;
-                    }
-                    //draw - order of drawing determines layers
-                    gamePaused = false;
-                    //platform border
-                    int platformBorder {2};
-                    BeginDrawing();
-                    ClearBackground(BLACK);
+                    atkIter->removeGridOccupation(atkIter->gridCellsCurrent);
+                    atkIter = attackVector.erase(atkIter);
+                }else{
+                    ++atkIter;
+                }
+            }
 
-
-                    //draw projectiles
-                    for(auto& item: attackVector){
-                        item.moveProjectile();
-                        DrawRectangle(item.hitbox.x,item.hitbox.y,item.hitbox.width,item.hitbox.height,YELLOW);
-                    }
-
-                    //draw world
-                    for(const auto& plat: platform_vector){
-                        DrawRectangle(plat.hitbox.x-platformBorder,plat.hitbox.y,plat.hitbox.width+platformBorder*2,plat.hitbox.height,GREEN);
-                    }
-
-                    //draw enemies
-                    for(const auto& foe: enemyVector){
-                        DrawRectangle(foe.hitbox.x,foe.hitbox.y,foe.hitbox.width,foe.hitbox.height,RED);
-                    }
-
-                    DrawRectangle(protag.hitbox.x, protag.hitbox.y, protag.hitbox.width, protag.hitbox.height, protag.entColor);
-
-
-                    //draw text
-                    //winCondition
-                    DrawText(TextFormat("Kills: %02i/%02i", killCount, winKillCount), 20, 20, 20, WHITE);
-                    DrawText(TextFormat("<3: %02i/%02i", protag.hp, protag.maxHp), screenWidth - 100, 20, 20, WHITE);
-
-                    EndDrawing();
-
-                    //check win condition
-                    if(killCount >= winKillCount){
-                        gameState = TITLE;
-                    }
-                    //check death condition
-                    if(protag.hp <= 0){
-                        //go to death screen
-                        gameState = DEAD;
-                    }
-                } break;
-                case DEAD:
+            //update enemy position
+            for(auto& foe: enemyVector){
+                foe.updateMovement(protag.hitbox.x,protag.hitbox.y);
+                for(auto& plat: platformVector){
+                    foe.collisionHandler(&plat);
+                }
+                //set the destruction bit
+                if(!foe.checkInSquare())
                 {
-                    levelDead();
-
-                } break;
-                case EXITGAME:
-                {
-                    gameExitConfirmed = true;
-                }break;
-                default: break;
+                    foe.isAlive = false;
+                }
             }
         }
+
+        //game stage state machine
+        switch(gameState)
+        {
+            case TITLE:
+            {
+                levelMainMenu();
+            } break;
+            case LEVEL1:
+            {
+                level1(&protag, &killCount, &winCount);
+            } break;
+            case DEAD:
+            {
+                levelDead();
+
+            } break;
+            case EXITGAME:
+            {
+                gameExitConfirmed = true;
+            }break;
+            default: break;
+        }
+        //state update
+        prevState = gameState;
+        gameState = requestState;
     }
     CloseWindow();
     return 0;

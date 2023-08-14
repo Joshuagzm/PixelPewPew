@@ -11,6 +11,7 @@
 #include "include/player.h"
 #include "include/functs.h"
 #include "include/grid.h"
+#include "include/stage.h"
 
 //Ideas! 
 /*
@@ -53,11 +54,11 @@ TODO:
 //things to move into functions
 /*
 Player functions:
- - Keypress events
+ - X Keypress events
  - 
 
 Every level:
- - Adding platforms/objects
+ - X Adding platforms/objects
  - Removing platforms/objects
  - 
 
@@ -75,17 +76,21 @@ class platform {
 
 int randMsgIndex {0};
 
-std::vector<entity> platform_vector;
-std::vector<projectileAttack> attackVector;
-std::vector<genericEnemy> enemyVector;
 bool collision;
 enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, DEAD, DUMMY};
 screen prevState {DUMMY};
-screen gameState {TITLE};
+screen gameState {LEVEL1};
+screen requestState {LEVEL1};
+
+std::deque<entity> platformVector;
+std::deque<projectileAttack> attackVector;
+std::deque<genericEnemy> enemyVector;
 
 bool gameReplay {true};
 bool gamePaused {true};
 bool gameExitRequested {false};
 bool gameExitConfirmed {false};
+
+
 
 #endif

@@ -38,9 +38,11 @@ int player::initPlayer()
     this->halfWidth = this->height/2;
     this->speedX = 5;
     this->speedY = 0;
-    this->jumpMax = 2;
+    this->jumpMax = 10;
     this->maxHp = 3;
     this->hp = this->maxHp;
+    this->isInvulnerable = false;
+    this->invulnerableTimer = 0;
 
     return 0;
 }
@@ -68,7 +70,7 @@ int player::checkMoveInput(){
     return 0;
 }
 
-int player::checkAttackInput(std::vector<projectileAttack>* attackVector){
+int player::checkAttackInput(std::deque<projectileAttack>* attackVector){
     //firing
     if(IsKeyDown(KEY_Z)){
         this->fireProjectile(attackVector);
@@ -112,7 +114,7 @@ int player::screenBorder(int screenHeight, int screenWidth)
     return 0;
 }
 
-int player::fireProjectile(std::vector<projectileAttack>* attackVector){
+int player::fireProjectile(std::deque<projectileAttack>* attackVector){
     //function to manage firing a basic projectile
     //Allow certain number of shots on screen
     //Cooldown management
