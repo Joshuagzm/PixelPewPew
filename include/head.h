@@ -44,10 +44,25 @@ TODO:
  - X Enemy generation
  - X Ground enemy
 
- - Player Actions (attacks and animations)
+ - X Player Actions (attacks)
  - Larger level and viewpoint windowing
- - Player health and damage
- - Enemy health and damage
+ - X Player health and damage
+ - X Enemy health and damage
+*/
+
+//things to move into functions
+/*
+Player functions:
+ - Keypress events
+ - 
+
+Every level:
+ - Adding platforms/objects
+ - Removing platforms/objects
+ - 
+
+
+
 */
 
 class platform {

@@ -20,6 +20,7 @@ void levelDead(){
 
     if(prevState != gameState){
         randMsgIndex = rand() % deathMessages.size();
+        prevState = gameState;
     }
     
     //text definitions
@@ -55,7 +56,6 @@ void levelDead(){
     DrawText(TextFormat(promptMessage), promptX, promptY, promptSize, promptColor);
 
     EndDrawing();
-    prevState = gameState;
 }
 
 void levelMainMenu(){
@@ -111,7 +111,7 @@ void levelMainMenu(){
     DrawText(TextFormat(mainMenuQuit), quitX, quitY, optionSize, quitColor);
 
     EndDrawing();
-    prevState = gameState;
+    
 }
 
 ////
@@ -184,29 +184,8 @@ int main () {
                 protag.initLoop();
 
                 //Movement handling
-                if(IsKeyDown(KEY_LEFT)){
-                    protag.setSpeedX(-1*protag.baseSpeed); 
-                    protag.faceDirectionX = protag.left;   
-                }else if(IsKeyDown(KEY_RIGHT)){
-                    protag.setSpeedX(1*protag.baseSpeed);  
-                    protag.faceDirectionX = protag.right;
-                }else{
-                    protag.setSpeedX(0);
-                }
-
-                //jump
-                if(IsKeyPressed(KEY_SPACE)){
-                    if(protag.jumpStock > 0){
-                        protag.setSpeedY(-25);
-                        protag.jumpStock -= 1;
-                    }
-                }
-                
-                //firing
-                if(IsKeyDown(KEY_Z)){
-                    protag.fireProjectile(&attackVector);
-                }
-
+                protag.checkMoveInput();
+                protag.checkAttackInput(&attackVector);
 
                 //UPDATE VALUES//
                 protag.moveX();
@@ -300,6 +279,11 @@ int main () {
                 } break;
                 case LEVEL1:
                 {
+                    //check transition
+                    if(prevState != gameState){
+                        protag.initPlayer();
+                        prevState = gameState;
+                    }
                     //draw - order of drawing determines layers
                     gamePaused = false;
                     //platform border
@@ -333,7 +317,6 @@ int main () {
                     DrawText(TextFormat("<3: %02i/%02i", protag.hp, protag.maxHp), screenWidth - 100, 20, 20, WHITE);
 
                     EndDrawing();
-                    prevState = gameState;
 
                     //check win condition
                     if(killCount >= winKillCount){

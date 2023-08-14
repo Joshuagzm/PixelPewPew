@@ -45,6 +45,37 @@ int player::initPlayer()
     return 0;
 }
 
+//check user inputs
+int player::checkMoveInput(){
+    if(IsKeyDown(KEY_LEFT)){
+        this->setSpeedX(-1*this->baseSpeed); 
+        this->faceDirectionX = this->left;   
+    }else if(IsKeyDown(KEY_RIGHT)){
+        this->setSpeedX(1*this->baseSpeed);  
+        this->faceDirectionX = this->right;
+    }else{
+        this->setSpeedX(0);
+    }
+
+    //jump
+    if(IsKeyPressed(KEY_SPACE)){
+        if(this->jumpStock > 0){
+            this->setSpeedY(-25);
+            this->jumpStock -= 1;
+        }
+    }
+
+    return 0;
+}
+
+int player::checkAttackInput(std::vector<projectileAttack>* attackVector){
+    //firing
+    if(IsKeyDown(KEY_Z)){
+        this->fireProjectile(attackVector);
+    }
+    return 0;
+}
+
 //apply speedX
 int player::moveX(){
     //TODO: Add acceleration?

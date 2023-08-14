@@ -34,6 +34,8 @@ class player: public entity {
     
 
     //class methods
+    int checkMoveInput(); //checks user inputs
+    int checkAttackInput(std::vector<projectileAttack>* attackVector);
     int moveX();
     int moveY();
     int screenBorder(int screenHeight, int screenWidth);//prevents movement outside of the screen
