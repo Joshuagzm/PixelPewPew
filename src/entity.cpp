@@ -178,10 +178,10 @@ int entity::collisionHandler(entity * obj){
 
 }
 
-bool entity::checkInSquare()
+bool entity::checkInSquare(int* squareWidth, int* squareHeight)
 {
     //function to check if an entity is within a square (usually the screen)
-    return checkInBounds(this->hitbox.x, float(0), float(screenWidth)) && checkInBounds(this->hitbox.y,float(0),float(screenHeight));
+    return checkInBounds(this->hitbox.x, float(0), float(*squareWidth)) && checkInBounds(this->hitbox.y,float(0), float(*squareHeight));
 
 }
 

@@ -75,6 +75,8 @@ class platform {
 };
 
 int randMsgIndex {0};
+int stageHeight{600};
+int stageWidth{1800};
 
 bool collision;
 enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, DEAD, DUMMY};

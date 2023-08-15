@@ -91,7 +91,7 @@ class entity {
         int setSpeedX(int modifier);
 
         //check entity methods
-        bool checkInSquare();
+        bool checkInSquare(int* squareWidth, int* squareHeight);
 
         //check current grid occupation
         int updateGridOccupation();

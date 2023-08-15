@@ -10,9 +10,9 @@
 #include <raylib.h>
 
 //initialise system variables
-const int screenWidth = 800;
-const int screenHeight = 600;
-const int targetFPS = 60;
+const int screenWidth {800};
+const int screenHeight {600};
+const int targetFPS {60};
 
 int getRelativeDir(float src, float dst);//gets the direction of incrementation to get from src to dst
 bool checkInBounds(float input, float lower, float upper);//checks if input is within bounds upper and lower (inclusive)

@@ -1,9 +1,13 @@
 #include "include/head.h"
 
 //Level module declarations
-void level1(player* protag, int* killCount, int* winCount);
+void level1(player* protag, int* killCount, int* winCount, Camera2D* camera);
 void levelDead();
 void levelMainMenu();
+
+//update camera module declaration
+
+void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width, int height);
 
 ////
 //MAIN
@@ -19,7 +23,7 @@ int main () {
 
     //grid initialise
     gridCell emptyCell;
-    for (auto& cell : pairInterpolator(std::make_pair(getCurrentCol(0),getCurrentRow(0)), std::make_pair(getCurrentCol(screenWidth), getCurrentRow(screenHeight))))
+    for (auto& cell : pairInterpolator(std::make_pair(getCurrentCol(0),getCurrentRow(0)), std::make_pair(getCurrentCol(stageWidth), getCurrentRow(stageHeight))))
     {
         gridContainer.insert(std::make_pair(cell,emptyCell));
     }
@@ -33,6 +37,13 @@ int main () {
     player protag;
     protag.initPlayer();
 
+    //initialise camera
+    Camera2D camera {{0}};
+    camera.target = (Vector2){ protag.hitbox.x, protag.hitbox.y };
+    camera.offset = (Vector2){ screenWidth/2.0f, screenHeight/2.0f };
+    camera.rotation = 0.0f;
+    camera.zoom = 1.0f;
+
     //initialise win condition
     int winCount {10};
     int killCount {0};
@@ -42,6 +53,9 @@ int main () {
         //testing for screen change detection
         // if(prevState != gameState){
         // }
+
+        //update camera
+        updateCameraClamp(&camera, &protag, 0.0f, screenWidth, screenHeight);
 
         //Code that should run during gameplay
         if(gamePaused != true){
@@ -55,7 +69,7 @@ int main () {
             //UPDATE VALUES//
             protag.moveX();
             protag.moveY();
-            protag.screenBorder(screenHeight, screenWidth);
+            protag.screenBorder(stageHeight, stageWidth);
 
             //update grid membership
             protag.updateGridOccupation();
@@ -144,13 +158,14 @@ int main () {
                     foe.collisionHandler(&plat);
                 }
                 //set the destruction bit
-                if(!foe.checkInSquare())
+                if( !foe.checkInSquare(&stageWidth, &stageHeight) )
                 {
                     foe.isAlive = false;
                 }
             }
         }
 
+        //begin camera drawing
         //game stage state machine
         switch(gameState)
         {
@@ -160,7 +175,7 @@ int main () {
             } break;
             case LEVEL1:
             {
-                level1(&protag, &killCount, &winCount);
+                level1(&protag, &killCount, &winCount, &camera);
             } break;
             case DEAD:
             {
@@ -173,6 +188,7 @@ int main () {
             }break;
             default: break;
         }
+        EndMode2D();
         //state update
         prevState = gameState;
         gameState = requestState;
@@ -181,17 +197,40 @@ int main () {
     return 0;
 }
 
+void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width, int height)
+{
+    camera->target.x = protag->hitbox.x;
+    camera->target.y = protag->hitbox.y;
+    //camera is focused on the player, and the object of focus is kept at the center of the screen
+    camera->offset.x = width/2.0f;
+    camera->offset.y = height/2.0f;
+    //target locates the origin, and offset tells where the offset is on the screen
+
+    //add some wiggle room for the character
+
+    //clamps to the screen edges
+    //get the world edges in the screen space and clamps
+    Vector2 topLeft =       GetWorldToScreen2D((Vector2){0,0}, *camera);
+    Vector2 bottomRight =   GetWorldToScreen2D((Vector2){static_cast<float>(stageWidth),static_cast<float>(stageHeight)}, *camera);
+    if(topLeft.x > 0){          camera->offset.x = (camera->offset.x - topLeft.x);              }
+    if(topLeft.y > 0){          camera->offset.y = (camera->offset.y - topLeft.y);              }
+    if(bottomRight.x < width){  camera->offset.x = camera->offset.x + (width - bottomRight.x);  }
+    if(bottomRight.y < height){ camera->offset.y = camera->offset.y + (height - bottomRight.y); }
+}
+
 //Level module definitions
-void level2(player* protag, int* killCount, int* winCount){
+void level2(player* protag, int* killCount, int* winCount, Camera2D* camera){
     //on transition
     if(prevState != gameState){
-        //initialise platforms - FUNCT
+        stageWidth = 2*screenHeight;
+        stageHeight = screenHeight;
         resetWorld(&platformVector, &enemyVector, &attackVector);
         registerPlatform(&platformVector, 500,450,200,20);
         registerPlatform(&platformVector, 600,580,200,20);
         registerPlatform(&platformVector, 600,350,200,20);
         registerPlatform(&platformVector, 200,500,300,20);
         registerPlatform(&platformVector, 400,150,200,20);
+        registerPlatform(&platformVector, 0,stageHeight - 10,stageWidth,10);    //the floor
         *winCount = 10;
         *killCount = 0;
         protag->initPlayer();
@@ -204,6 +243,7 @@ void level2(player* protag, int* killCount, int* winCount){
     BeginDrawing();
     ClearBackground(BLACK);
 
+    BeginMode2D(*camera);
 
     //draw projectiles
     for(auto& item: attackVector){
@@ -223,6 +263,7 @@ void level2(player* protag, int* killCount, int* winCount){
 
     DrawRectangle(protag->hitbox.x, protag->hitbox.y, protag->hitbox.width, protag->hitbox.height, protag->entColor);
 
+    EndMode2D();
 
     //draw text
     //winCondition
@@ -242,10 +283,11 @@ void level2(player* protag, int* killCount, int* winCount){
     }
 }
 
-void level1(player* protag, int* killCount, int* winCount){
+void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
     //on transition
     if(prevState != gameState){
-        //initialise platforms - FUNCT
+        stageWidth = 2*screenHeight;
+        stageHeight = screenHeight;
         resetWorld(&platformVector, &enemyVector, &attackVector);
         registerPlatform(&platformVector, 500,450,200,20);
         registerPlatform(&platformVector, 600,580,200,20);
@@ -264,6 +306,7 @@ void level1(player* protag, int* killCount, int* winCount){
     BeginDrawing();
     ClearBackground(BLACK);
 
+    BeginMode2D(*camera);
 
     //draw projectiles
     for(auto& item: attackVector){
@@ -283,6 +326,7 @@ void level1(player* protag, int* killCount, int* winCount){
 
     DrawRectangle(protag->hitbox.x, protag->hitbox.y, protag->hitbox.width, protag->hitbox.height, protag->entColor);
 
+    EndMode2D();
 
     //draw text
     //winCondition

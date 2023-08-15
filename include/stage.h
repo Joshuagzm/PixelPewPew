@@ -14,9 +14,4 @@
 int registerPlatform(std::deque<entity>* platformVector, float platX, float platY, float platWidth, float platHeight);
 //clear platforms
 int resetWorld(std::deque<entity>* platformVector, std::deque<genericEnemy>* enemyVector, std::deque<projectileAttack>* attackVector);
-
-//register enemy
-
-//register attack
-
 #endif
