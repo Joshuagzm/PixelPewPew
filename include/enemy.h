@@ -24,7 +24,7 @@ class genericEnemy: public entity
 };
 
 //enemy spawning handler
-class enemyDirector
+class enemyDirector: public entity
 {
     public:
         //variables

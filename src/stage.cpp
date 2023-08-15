@@ -5,6 +5,8 @@ int registerPlatform(std::deque<entity>* platformVector, float platX, float plat
 {
     entity dummyPlat;
     dummyPlat.hitbox = {platX, platY, platWidth,platHeight};
+    dummyPlat.alignment = entity::OBJECT;
+    dummyPlat.isSolid = true;
     platformVector->push_back(dummyPlat);
     platformVector->back().updateGridOccupation();
     return 0;

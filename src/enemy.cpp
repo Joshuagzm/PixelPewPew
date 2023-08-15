@@ -23,6 +23,8 @@ genericEnemy enemyDirector::spawnCommand()
     enemy.isSolid = false;
     enemy.isTouchDamage = true;
 
+    enemy.alignment = MONSTER;
+
     enemy.updateGridOccupation();
 
 

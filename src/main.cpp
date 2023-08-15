@@ -1,177 +1,9 @@
 #include "include/head.h"
 
-////
-//LEVELS
-////
-void level1(player* protag, int* killCount, int* winCount){
-    //on transition
-    if(prevState != gameState){
-        //initialise platforms - FUNCT
-        resetWorld(&platformVector, &enemyVector, &attackVector);
-        registerPlatform(&platformVector, 500,450,200,20);
-        registerPlatform(&platformVector, 600,580,200,20);
-        registerPlatform(&platformVector, 600,350,200,20);
-        registerPlatform(&platformVector, 200,500,300,20);
-        registerPlatform(&platformVector, 400,150,200,20);
-        *winCount = 10;
-        *killCount = 0;
-        protag->initPlayer();
-    
-    }
-    //draw - order of drawing determines layers
-    gamePaused = false;
-    //platform border
-    int platformBorder {2};
-    BeginDrawing();
-    ClearBackground(BLACK);
-
-
-    //draw projectiles
-    for(auto& item: attackVector){
-        item.moveProjectile();
-        DrawRectangle(item.hitbox.x,item.hitbox.y,item.hitbox.width,item.hitbox.height,YELLOW);
-    }
-
-    //draw world
-    for(const auto& plat: platformVector){
-        DrawRectangle(plat.hitbox.x-platformBorder,plat.hitbox.y,plat.hitbox.width+platformBorder*2,plat.hitbox.height,GREEN);
-    }
-
-    //draw enemies
-    for(const auto& foe: enemyVector){
-        DrawRectangle(foe.hitbox.x,foe.hitbox.y,foe.hitbox.width,foe.hitbox.height,RED);
-    }
-
-    DrawRectangle(protag->hitbox.x, protag->hitbox.y, protag->hitbox.width, protag->hitbox.height, protag->entColor);
-
-
-    //draw text
-    //winCondition
-    DrawText(TextFormat("Kills: %02i/%02i", *killCount, *winCount), 20, 20, 20, WHITE);
-    DrawText(TextFormat("Health: %02i/%02i", protag->hp, protag->maxHp), screenWidth - 150, 20, 20, WHITE);
-
-    EndDrawing();
-
-    //check win condition
-    if(*killCount >= *winCount){
-        requestState = TITLE;
-    }
-    //check death condition
-    if(protag->hp <= 0){
-        //go to death screen
-        requestState = DEAD;
-    }
-}
-
-void levelDead(){
-//draw
-    BeginDrawing();
-    ClearBackground(BLACK);
-
-    std::vector<const char *> deathMessages;
-    deathMessages.push_back("Sucks to suck.");
-    deathMessages.push_back("You died.");
-    deathMessages.push_back("Weak. Noob.");
-    deathMessages.push_back("Maybe you should sleep.");
-
-    //getting size and position of message, should be centered in the top third
-    float messasgeSize {20};
-    float promptSize {20};
-
-    if(prevState != gameState){
-        randMsgIndex = rand() % deathMessages.size();
-    }
-    
-    //text definitions
-    const char * deathMessage = deathMessages.at(randMsgIndex);
-    const char * promptMessage = "return to menu";
-
-    Vector2 messasgeDimensions { MeasureTextEx(GetFontDefault(),deathMessage, static_cast<float>(messasgeSize), 2)};
-    Vector2 promptDimensions { MeasureTextEx(GetFontDefault(),promptMessage, static_cast<float>(promptSize), 2)};
-
-    //determine the position 
-    float messasgeX {screenWidth/2 - messasgeDimensions.x/2};
-    float messasgeY {screenHeight/3};
-    float promptX   {screenWidth/2 - promptDimensions.x/2};
-    float promptY   {screenHeight - 100};
-
-    auto messasgeColor{RED};
-    auto promptColor{WHITE};
-
-    Vector2 mousePos{GetMousePosition()};
-
-    //check for hover and click events
-    if(isMouseInRect(mousePos, promptX, promptY, promptDimensions)){
-        promptColor = GREEN;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            requestState = TITLE;
-        }
-    }else{
-        promptColor = WHITE;
-    }
-
-    //winCondition
-    DrawText(TextFormat(deathMessage), messasgeX, messasgeY, messasgeSize, messasgeColor);
-    DrawText(TextFormat(promptMessage), promptX, promptY, promptSize, promptColor);
-
-    EndDrawing();
-}
-
-void levelMainMenu(){
-    //draw
-    BeginDrawing();
-    ClearBackground(BLACK);
-
-    const char * mainMenuTitle {"Pixel Pew Pew"};
-    const char * mainMenuStart {"Start!"};
-    const char * mainMenuQuit {"Quit"};
-
-    float titleSize {75};
-    float optionSize {30};
-
-    float titleX {50};
-    float titleY {75};
-    float startX {50}; 
-    float startY {400};
-    float quitX {50};
-    float quitY {450};
-
-    auto titleColor{WHITE};
-    auto startColor{WHITE};
-    auto quitColor{WHITE};
-
-    //Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),mainMenuTitle, static_cast<float>(titleSize), 1)};
-    Vector2 startOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuStart, static_cast<float>(optionSize), 1.1)};
-    Vector2 quitOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuQuit, static_cast<float>(optionSize), 1.1)};
-
-    Vector2 mousePos{GetMousePosition()};
-
-    //check for hover and click events
-    if(isMouseInRect(mousePos, startX, startY, startOptionDimensions)){
-        startColor = GREEN;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            requestState = LEVEL1;
-        }
-    }else{
-        startColor = WHITE;
-    }
-    if(isMouseInRect(mousePos, quitX, quitY, quitOptionDimensions)){
-        quitColor = GREEN;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            requestState = EXITGAME;
-        }
-    }else{
-        quitColor = WHITE;
-    }
-
-    //winCondition
-    DrawText(TextFormat(mainMenuTitle), titleX, titleY, titleSize, titleColor);
-    DrawText(TextFormat(mainMenuStart), startX, startY, optionSize, startColor);
-    DrawText(TextFormat(mainMenuQuit), quitX, quitY, optionSize, quitColor);
-
-    EndDrawing();
-    
-}
+//Level module declarations
+void level1(player* protag, int* killCount, int* winCount);
+void levelDead();
+void levelMainMenu();
 
 ////
 //MAIN
@@ -230,6 +62,9 @@ int main () {
             for (auto& enemy: enemyVector){
                 enemy.updateGridOccupation();
             }
+            for (auto& proj: attackVector){
+                proj.updateGridOccupation();
+            }
 
             //check collision between the player and entities within its grid cell
             for(const auto& closeEntity: protag.checkCloseEntities()){
@@ -238,17 +73,30 @@ int main () {
 
             //check projectile collisions
             for(auto& proj: attackVector){
-                for (const auto& plat: platformVector){
-                    if(CheckCollisionRecs(proj.hitbox, plat.hitbox)){
-                        proj.isAlive = false;
-                        break;
+                bool exitFlag {false};
+                //check against close entities
+                for(const auto& closeEntity: proj.checkCloseEntities()){
+                    //check collision event
+                    if(CheckCollisionRecs(proj.hitbox, closeEntity->hitbox)){
+                        switch(closeEntity->alignment){
+                            case entity::MONSTER:
+                            {
+                                proj.isAlive = false;
+                                closeEntity->isAlive = false;
+                                killCount += 1;
+                                //indicate exit
+                                exitFlag = true;
+                            }break;
+                            case entity::OBJECT:
+                            {
+                                proj.isAlive = false;
+                                exitFlag = true;
+                            }break;
+                            default: break; 
+                        }
                     }
-                }
-                for (auto& enemy: enemyVector){
-                    if(CheckCollisionRecs(proj.hitbox, enemy.hitbox)){
-                        proj.isAlive = false;
-                        enemy.isAlive = false;
-                        killCount += 1;
+                    if(exitFlag){
+                        exitFlag = false;
                         break;
                     }
                 }
@@ -331,4 +179,238 @@ int main () {
     }
     CloseWindow();
     return 0;
+}
+
+//Level module definitions
+void level2(player* protag, int* killCount, int* winCount){
+    //on transition
+    if(prevState != gameState){
+        //initialise platforms - FUNCT
+        resetWorld(&platformVector, &enemyVector, &attackVector);
+        registerPlatform(&platformVector, 500,450,200,20);
+        registerPlatform(&platformVector, 600,580,200,20);
+        registerPlatform(&platformVector, 600,350,200,20);
+        registerPlatform(&platformVector, 200,500,300,20);
+        registerPlatform(&platformVector, 400,150,200,20);
+        *winCount = 10;
+        *killCount = 0;
+        protag->initPlayer();
+    
+    }
+    //draw - order of drawing determines layers
+    gamePaused = false;
+    //platform border
+    int platformBorder {2};
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+
+    //draw projectiles
+    for(auto& item: attackVector){
+        item.moveProjectile();
+        DrawRectangle(item.hitbox.x,item.hitbox.y,item.hitbox.width,item.hitbox.height,YELLOW);
+    }
+
+    //draw world
+    for(const auto& plat: platformVector){
+        DrawRectangle(plat.hitbox.x-platformBorder,plat.hitbox.y,plat.hitbox.width+platformBorder*2,plat.hitbox.height,GREEN);
+    }
+
+    //draw enemies
+    for(const auto& foe: enemyVector){
+        DrawRectangle(foe.hitbox.x,foe.hitbox.y,foe.hitbox.width,foe.hitbox.height,RED);
+    }
+
+    DrawRectangle(protag->hitbox.x, protag->hitbox.y, protag->hitbox.width, protag->hitbox.height, protag->entColor);
+
+
+    //draw text
+    //winCondition
+    DrawText(TextFormat("Kills: %02i/%02i", *killCount, *winCount), 20, 20, 20, WHITE);
+    DrawText(TextFormat("Health: %02i/%02i", protag->hp, protag->maxHp), screenWidth - 150, 20, 20, WHITE);
+
+    EndDrawing();
+
+    //check win condition
+    if(*killCount >= *winCount){
+        requestState = TITLE;
+    }
+    //check death condition
+    if(protag->hp <= 0){
+        //go to death screen
+        requestState = DEAD;
+    }
+}
+
+void level1(player* protag, int* killCount, int* winCount){
+    //on transition
+    if(prevState != gameState){
+        //initialise platforms - FUNCT
+        resetWorld(&platformVector, &enemyVector, &attackVector);
+        registerPlatform(&platformVector, 500,450,200,20);
+        registerPlatform(&platformVector, 600,580,200,20);
+        registerPlatform(&platformVector, 600,350,200,20);
+        registerPlatform(&platformVector, 200,500,300,20);
+        registerPlatform(&platformVector, 400,150,200,20);
+        *winCount = 10;
+        *killCount = 0;
+        protag->initPlayer();
+    
+    }
+    //draw - order of drawing determines layers
+    gamePaused = false;
+    //platform border
+    int platformBorder {2};
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+
+    //draw projectiles
+    for(auto& item: attackVector){
+        item.moveProjectile();
+        DrawRectangle(item.hitbox.x,item.hitbox.y,item.hitbox.width,item.hitbox.height,YELLOW);
+    }
+
+    //draw world
+    for(const auto& plat: platformVector){
+        DrawRectangle(plat.hitbox.x-platformBorder,plat.hitbox.y,plat.hitbox.width+platformBorder*2,plat.hitbox.height,GREEN);
+    }
+
+    //draw enemies
+    for(const auto& foe: enemyVector){
+        DrawRectangle(foe.hitbox.x,foe.hitbox.y,foe.hitbox.width,foe.hitbox.height,RED);
+    }
+
+    DrawRectangle(protag->hitbox.x, protag->hitbox.y, protag->hitbox.width, protag->hitbox.height, protag->entColor);
+
+
+    //draw text
+    //winCondition
+    DrawText(TextFormat("Kills: %02i/%02i", *killCount, *winCount), 20, 20, 20, WHITE);
+    DrawText(TextFormat("Health: %02i/%02i", protag->hp, protag->maxHp), screenWidth - 150, 20, 20, WHITE);
+
+    EndDrawing();
+
+    //check win condition
+    if(*killCount >= *winCount){
+        requestState = TITLE;
+    }
+    //check death condition
+    if(protag->hp <= 0){
+        //go to death screen
+        requestState = DEAD;
+    }
+}
+
+void levelDead(){
+    //set paused
+    gamePaused = true;
+    //draw
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    std::vector<const char *> deathMessages;
+    deathMessages.push_back("Sucks to suck.");
+    deathMessages.push_back("You died.");
+    deathMessages.push_back("Weak. Noob.");
+    deathMessages.push_back("Maybe you should sleep.");
+
+    //getting size and position of message, should be centered in the top third
+    float messasgeSize {20};
+    float promptSize {20};
+
+    if(prevState != gameState){
+        randMsgIndex = rand() % deathMessages.size();
+    }
+    
+    //text definitions
+    const char * deathMessage = deathMessages.at(randMsgIndex);
+    const char * promptMessage = "return to menu";
+
+    Vector2 messasgeDimensions { MeasureTextEx(GetFontDefault(),deathMessage, static_cast<float>(messasgeSize), 2)};
+    Vector2 promptDimensions { MeasureTextEx(GetFontDefault(),promptMessage, static_cast<float>(promptSize), 2)};
+
+    //determine the position 
+    float messasgeX {screenWidth/2 - messasgeDimensions.x/2};
+    float messasgeY {screenHeight/3};
+    float promptX   {screenWidth/2 - promptDimensions.x/2};
+    float promptY   {screenHeight - 100};
+
+    auto messasgeColor{RED};
+    auto promptColor{WHITE};
+
+    Vector2 mousePos{GetMousePosition()};
+
+    //check for hover and click events
+    if(isMouseInRect(mousePos, promptX, promptY, promptDimensions)){
+        promptColor = GREEN;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            requestState = TITLE;
+        }
+    }else{
+        promptColor = WHITE;
+    }
+
+    //winCondition
+    DrawText(TextFormat(deathMessage), messasgeX, messasgeY, messasgeSize, messasgeColor);
+    DrawText(TextFormat(promptMessage), promptX, promptY, promptSize, promptColor);
+
+    EndDrawing();
+}
+
+void levelMainMenu(){
+    gamePaused = true;
+    //draw
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    const char * mainMenuTitle {"Pixel Pew Pew"};
+    const char * mainMenuStart {"Start!"};
+    const char * mainMenuQuit {"Quit"};
+
+    float titleSize {75};
+    float optionSize {30};
+
+    float titleX {50};
+    float titleY {75};
+    float startX {50}; 
+    float startY {400};
+    float quitX {50};
+    float quitY {450};
+
+    auto titleColor{WHITE};
+    auto startColor{WHITE};
+    auto quitColor{WHITE};
+
+    //Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),mainMenuTitle, static_cast<float>(titleSize), 1)};
+    Vector2 startOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuStart, static_cast<float>(optionSize), 1.1)};
+    Vector2 quitOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuQuit, static_cast<float>(optionSize), 1.1)};
+
+    Vector2 mousePos{GetMousePosition()};
+
+    //check for hover and click events
+    if(isMouseInRect(mousePos, startX, startY, startOptionDimensions)){
+        startColor = GREEN;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            requestState = LEVEL1;
+        }
+    }else{
+        startColor = WHITE;
+    }
+    if(isMouseInRect(mousePos, quitX, quitY, quitOptionDimensions)){
+        quitColor = GREEN;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            requestState = EXITGAME;
+        }
+    }else{
+        quitColor = WHITE;
+    }
+
+    //winCondition
+    DrawText(TextFormat(mainMenuTitle), titleX, titleY, titleSize, titleColor);
+    DrawText(TextFormat(mainMenuStart), startX, startY, optionSize, startColor);
+    DrawText(TextFormat(mainMenuQuit), quitX, quitY, optionSize, quitColor);
+
+    EndDrawing();
+    
 }

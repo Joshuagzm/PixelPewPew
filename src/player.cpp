@@ -43,6 +43,7 @@ int player::initPlayer()
     this->hp = this->maxHp;
     this->isInvulnerable = false;
     this->invulnerableTimer = 0;
+    this->alignment = PLAYER;
 
     return 0;
 }
@@ -125,9 +126,12 @@ int player::fireProjectile(std::deque<projectileAttack>* attackVector){
         newProjectile.hitbox.x = this->hitbox.x + this->halfheight + this->halfheight*this->faceDirectionX;
         newProjectile.hitbox.y = this->hitbox.y + this->halfheight;
         newProjectile.speedX *= this->faceDirectionX;
+        newProjectile.isSolid = false;
         attackVector->push_back(newProjectile);
         this->abilityCooldown = 30;
-        std::cout<< "FIRING\n";
+
+        //register into grid
+        attackVector->back().updateGridOccupation();
         return 0;
     }
     return 0;

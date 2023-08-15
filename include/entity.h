@@ -36,17 +36,19 @@ class entity {
 
     public:
         entity();
-        enum directionX {left = -1, right = 1};
-        //geometry and position
-        float prevX {0};
-        float prevY {0};
-        int width {0};
-        int height {0};
-        int halfheight {0};
-        int halfWidth {0};
-        int mass {10};
-        Rectangle hitbox;
-        Color entColor{WHITE};
+        //physical properties
+        enum directionX {left = -1, right = 1}; //facing direction
+        float prevX {0};                        //previous position X
+        float prevY {0};                        //previous position Y
+        int width {0};                          //UNUSED width
+        int height {0};                         //UNUSED height
+        int halfheight {0};                     //precalculated value half of the height
+        int halfWidth {0};                      //precalculated value half of width
+        int mass {10};                          //"mass"
+        Rectangle hitbox;                       //hitbox, used for appearance and collisions
+        Color entColor{WHITE};                  //entity color
+        int faceDirectionX {left};              //integer to indicate facing direction in the X direction
+        int faceDirectionY {0};                 //integer to indicate facing direction in the Y direction (unused maybe)
 
         //movement and status
         bool isAlive = true;    //when false, delete the object
@@ -62,18 +64,19 @@ class entity {
         bool xLock {false};     //locks x movemnet
         int gravity {2};        //gravitational acceleration
 
-        int hp {0};             //current hp
-        int maxHp{0};           //max hp
-        int invulnerableTimer{0};
-        bool isInvulnerable {false};    
+        int hp {0};                     //current hp
+        int maxHp{0};                   //max hp
+        int invulnerableTimer{0};       //invulnerable time remaining
+        bool isInvulnerable {false};    //invulnerable status
 
         //collision status
-        bool isSolid {true};
-        bool isTouchDamage {false};
+        bool isSolid {false};            //can entities pass through
+        bool isTouchDamage {false};     //will the player take touch damage 
 
-        int faceDirectionX {left};//integer to indicate facing direction in the X direction
-        int faceDirectionY {0};//integer to indicate facing direction in the Y direction (unused maybe)
-
+        //alignment
+        enum entityAlignment {PLAYER = 0, MONSTER = 1, NEUTRAL = 2, OBJECT = 3};
+        entityAlignment alignment {NEUTRAL};
+        
         //collision utilities
         Rectangle boxCollision; //represents the collision intersect area
         int collisionInt;
