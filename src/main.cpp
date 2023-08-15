@@ -122,7 +122,6 @@ int main () {
             {
                 enemyVector.push_back(enemyDir.spawnCommand());
                 enemyDir.spawnTimer = 0;
-                std::cout<<enemyVector.size()<<std::endl;
             }
 
             //delete out of range enemies
@@ -218,82 +217,20 @@ void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width,
     if(bottomRight.y < height){ camera->offset.y = camera->offset.y + (height - bottomRight.y); }
 }
 
-//Level module definitions
-void level2(player* protag, int* killCount, int* winCount, Camera2D* camera){
-    //on transition
-    if(prevState != gameState){
-        stageWidth = 2*screenHeight;
-        stageHeight = screenHeight;
-        resetWorld(&platformVector, &enemyVector, &attackVector);
-        registerPlatform(&platformVector, 500,450,200,20);
-        registerPlatform(&platformVector, 600,580,200,20);
-        registerPlatform(&platformVector, 600,350,200,20);
-        registerPlatform(&platformVector, 200,500,300,20);
-        registerPlatform(&platformVector, 400,150,200,20);
-        registerPlatform(&platformVector, 0,stageHeight - 10,stageWidth,10);    //the floor
-        *winCount = 10;
-        *killCount = 0;
-        protag->initPlayer();
-    
-    }
-    //draw - order of drawing determines layers
-    gamePaused = false;
-    //platform border
-    int platformBorder {2};
-    BeginDrawing();
-    ClearBackground(BLACK);
-
-    BeginMode2D(*camera);
-
-    //draw projectiles
-    for(auto& item: attackVector){
-        item.moveProjectile();
-        DrawRectangle(item.hitbox.x,item.hitbox.y,item.hitbox.width,item.hitbox.height,YELLOW);
-    }
-
-    //draw world
-    for(const auto& plat: platformVector){
-        DrawRectangle(plat.hitbox.x-platformBorder,plat.hitbox.y,plat.hitbox.width+platformBorder*2,plat.hitbox.height,GREEN);
-    }
-
-    //draw enemies
-    for(const auto& foe: enemyVector){
-        DrawRectangle(foe.hitbox.x,foe.hitbox.y,foe.hitbox.width,foe.hitbox.height,RED);
-    }
-
-    DrawRectangle(protag->hitbox.x, protag->hitbox.y, protag->hitbox.width, protag->hitbox.height, protag->entColor);
-
-    EndMode2D();
-
-    //draw text
-    //winCondition
-    DrawText(TextFormat("Kills: %02i/%02i", *killCount, *winCount), 20, 20, 20, WHITE);
-    DrawText(TextFormat("Health: %02i/%02i", protag->hp, protag->maxHp), screenWidth - 150, 20, 20, WHITE);
-
-    EndDrawing();
-
-    //check win condition
-    if(*killCount >= *winCount){
-        requestState = TITLE;
-    }
-    //check death condition
-    if(protag->hp <= 0){
-        //go to death screen
-        requestState = DEAD;
-    }
-}
-
 void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
     //on transition
     if(prevState != gameState){
         stageWidth = 2*screenHeight;
         stageHeight = screenHeight;
         resetWorld(&platformVector, &enemyVector, &attackVector);
-        registerPlatform(&platformVector, 500,450,200,20);
-        registerPlatform(&platformVector, 600,580,200,20);
-        registerPlatform(&platformVector, 600,350,200,20);
-        registerPlatform(&platformVector, 200,500,300,20);
-        registerPlatform(&platformVector, 400,150,200,20);
+        registerPlatform(&platformVector, 20,100,400,20);
+        registerPlatform(&platformVector, 600,200,100,20);
+        registerPlatform(&platformVector, 800,300,600,20);
+        registerPlatform(&platformVector, 600,400,100,20);
+        registerPlatform(&platformVector, 450,200,75,20);
+        registerPlatform(&platformVector, 1350,200,100,20);
+        registerPlatform(&platformVector, 1400,300,100,20);
+        registerPlatform(&platformVector, 0,stageHeight - 10,stageWidth,10);    //the floor
         *winCount = 10;
         *killCount = 0;
         protag->initPlayer();
