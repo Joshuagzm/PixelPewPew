@@ -4,6 +4,7 @@
 void level1(player* protag, int* killCount, int* winCount, Camera2D* camera);
 void levelDead();
 void levelMainMenu();
+void levelWin();
 
 //update camera module declaration
 
@@ -181,6 +182,11 @@ int main () {
                 levelDead();
 
             } break;
+            case WIN:
+            {
+                levelWin();
+
+            } break;
             case EXITGAME:
             {
                 gameExitConfirmed = true;
@@ -190,7 +196,9 @@ int main () {
         EndMode2D();
         //state update
         prevState = gameState;
-        gameState = requestState;
+        if(requestState != DUMMY){
+            gameState = requestState;
+        }
     }
     CloseWindow();
     return 0;
@@ -274,13 +282,60 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
 
     //check win condition
     if(*killCount >= *winCount){
-        requestState = TITLE;
+        requestState = WIN;
     }
     //check death condition
     if(protag->hp <= 0){
         //go to death screen
         requestState = DEAD;
     }
+}
+
+void levelWin(){
+    //set paused
+    gamePaused = true;
+    //draw
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    const char* winMessage {"Victory!"};
+
+    //getting size and position of message, should be centered in the top third
+    float messasgeSize {50};
+    float promptSize {20};
+    
+    //text definitions
+    const char * promptMessage = "return to menu";
+
+    Vector2 messasgeDimensions { MeasureTextEx(GetFontDefault(),winMessage, static_cast<float>(messasgeSize), 2)};
+    Vector2 promptDimensions { MeasureTextEx(GetFontDefault(),promptMessage, static_cast<float>(promptSize), 2)};
+
+    //determine the position 
+    float messasgeX {screenWidth/2 - messasgeDimensions.x/2};
+    float messasgeY {screenHeight/3};
+    float promptX   {screenWidth/2 - promptDimensions.x/2};
+    float promptY   {screenHeight - 100};
+
+    auto messasgeColor{GREEN};
+    auto promptColor{WHITE};
+
+    Vector2 mousePos{GetMousePosition()};
+
+    //check for hover and click events
+    if(isMouseInRect(mousePos, promptX, promptY, promptDimensions)){
+        promptColor = GREEN;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            requestState = TITLE;
+        }
+    }else{
+        promptColor = WHITE;
+    }
+
+    //winCondition
+    DrawText(TextFormat(winMessage), messasgeX, messasgeY, messasgeSize, messasgeColor);
+    DrawText(TextFormat(promptMessage), promptX, promptY, promptSize, promptColor);
+
+    EndDrawing();
 }
 
 void levelDead(){

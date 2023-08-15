@@ -79,10 +79,10 @@ int stageHeight{600};
 int stageWidth{1800};
 
 bool collision;
-enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, DEAD, DUMMY};
+enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, WIN, DEAD, DUMMY};
 screen prevState {DUMMY};
-screen gameState {LEVEL1};
-screen requestState {LEVEL1};
+screen gameState {TITLE};
+screen requestState {TITLE};
 
 std::deque<entity> platformVector;
 std::deque<projectileAttack> attackVector;
