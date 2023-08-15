@@ -44,26 +44,30 @@ TODO:
  - X Entity creator -> make the player and enemies inherit from entity
  - X Enemy generation
  - X Ground enemy
-
  - X Player Actions (attacks)
- - Larger level and viewpoint windowing
+ - X Larger level and viewpoint windowing
  - X Player health and damage
  - X Enemy health and damage
+
+ - Level exit gate
+ - Enemy variety
+ - Even larger map
+ - Healing/Upgrades
+ - Better enemy spawning
+
+ - Fall off the map and come back
+ - Multiplayer
+
 */
 
 //things to move into functions
 /*
 Player functions:
  - X Keypress events
- - 
 
 Every level:
  - X Adding platforms/objects
  - Removing platforms/objects
- - 
-
-
-
 */
 
 class platform {
@@ -81,8 +85,8 @@ int stageWidth{1800};
 bool collision;
 enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, WIN, DEAD, DUMMY};
 screen prevState {DUMMY};
-screen gameState {TITLE};
-screen requestState {TITLE};
+screen gameState {LEVEL1};
+screen requestState {DUMMY};
 
 std::deque<entity> platformVector;
 std::deque<projectileAttack> attackVector;
@@ -92,7 +96,5 @@ bool gameReplay {true};
 bool gamePaused {true};
 bool gameExitRequested {false};
 bool gameExitConfirmed {false};
-
-
 
 #endif

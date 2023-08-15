@@ -206,23 +206,33 @@ int main () {
 
 void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width, int height)
 {
-    camera->target.x = protag->hitbox.x;
-    camera->target.y = protag->hitbox.y;
+    
     //camera is focused on the player, and the object of focus is kept at the center of the screen
-    camera->offset.x = width/2.0f;
-    camera->offset.y = height/2.0f;
     //target locates the origin, and offset tells where the offset is on the screen
 
     //add some wiggle room for the character
+    int borderX = screenWidth/2 - 50;  //Border on the X extremeties
+    int borderY = screenHeight/2 - 50;  //Border on the Y extremeties
+
+    Vector2 bboxTopLeft = GetScreenToWorld2D((Vector2) {static_cast<float>(borderX), static_cast<float>(borderY)}, *camera);
+    Vector2 bboxBottomRight = GetScreenToWorld2D((Vector2) {static_cast<float>(screenWidth - borderX), static_cast<float> (screenHeight - borderY)}, *camera);
+
+    if(protag->hitbox.x < bboxTopLeft.x){       camera->target.x += protag->hitbox.x - bboxTopLeft.x;}
+    if(protag->hitbox.y < bboxTopLeft.y){       camera->target.y += protag->hitbox.y - bboxTopLeft.y;}
+    if(protag->hitbox.x > bboxBottomRight.x){   camera->target.x += protag->hitbox.x - bboxBottomRight.x;}
+    if(protag->hitbox.y > bboxBottomRight.y){   camera->target.y += protag->hitbox.y - bboxBottomRight.y;}
+
+    // camera->target.x = protag->hitbox.x;
+    // camera->target.y = protag->hitbox.y;
 
     //clamps to the screen edges
     //get the world edges in the screen space and clamps
-    Vector2 topLeft =       GetWorldToScreen2D((Vector2){0,0}, *camera);
-    Vector2 bottomRight =   GetWorldToScreen2D((Vector2){static_cast<float>(stageWidth),static_cast<float>(stageHeight)}, *camera);
-    if(topLeft.x > 0){          camera->offset.x = (camera->offset.x - topLeft.x);              }
-    if(topLeft.y > 0){          camera->offset.y = (camera->offset.y - topLeft.y);              }
-    if(bottomRight.x < width){  camera->offset.x = camera->offset.x + (width - bottomRight.x);  }
-    if(bottomRight.y < height){ camera->offset.y = camera->offset.y + (height - bottomRight.y); }
+    Vector2 camTopLeft =       GetWorldToScreen2D((Vector2){0,0}, *camera);
+    Vector2 camBottomRight =   GetWorldToScreen2D((Vector2){static_cast<float>(stageWidth),static_cast<float>(stageHeight)}, *camera);
+    if(camTopLeft.x > 0){          camera->offset.x = (camera->offset.x - camTopLeft.x);              }
+    if(camTopLeft.y > 0){          camera->offset.y = (camera->offset.y - camTopLeft.y);              }
+    if(camBottomRight.x < width){  camera->offset.x = camera->offset.x + (width - camBottomRight.x);  }
+    if(camBottomRight.y < height){ camera->offset.y = camera->offset.y + (height - camBottomRight.y); }
 }
 
 void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
