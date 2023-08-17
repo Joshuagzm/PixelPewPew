@@ -37,6 +37,14 @@ int main () {
     //initialise player 
     player protag;
     protag.initPlayer();
+    protag.playerIndex = playerVector.size();
+    playerVector.push_back(&protag);
+
+    //initialise player 2 CLIENT SIM
+    player pFriend;
+    pFriend.initPlayer();
+    pFriend.playerIndex = playerVector.size();
+    playerVector.push_back(&pFriend);
 
     //initialise camera
     Camera2D camera {{0}};
@@ -51,9 +59,6 @@ int main () {
 
     //GAME LOOP
     while (WindowShouldClose() == false && gameExitConfirmed == false){
-        //testing for screen change detection
-        // if(prevState != gameState){
-        // }
 
         //update camera
         updateCameraClamp(&camera, &protag, 0.0f, screenWidth, screenHeight);
@@ -66,6 +71,10 @@ int main () {
             //Movement handling
             protag.checkMoveInput();
             protag.checkAttackInput(&attackVector);
+
+            //CLIENT SIM
+
+        
 
             //UPDATE VALUES//
             protag.moveX();
@@ -279,8 +288,9 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
         DrawRectangle(foe.hitbox.x,foe.hitbox.y,foe.hitbox.width,foe.hitbox.height,RED);
     }
 
-    DrawRectangle(protag->hitbox.x, protag->hitbox.y, protag->hitbox.width, protag->hitbox.height, protag->entColor);
-
+    for(const auto& player: playerVector){
+        DrawRectangle(player->hitbox.x, player->hitbox.y, player->hitbox.width, player->hitbox.height, player->entColor);
+    }
     EndMode2D();
 
     //draw text

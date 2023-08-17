@@ -31,6 +31,7 @@ class player: public entity {
     //variables
     int abilityCooldown {0};
     bool animationLock {false};
+    int playerIndex {-1};
     
 
     //class methods
