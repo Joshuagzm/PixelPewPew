@@ -281,7 +281,7 @@ ifeq ($(PLATFORM),PLATFORM_DESKTOP)
 endif
 
 # Define library paths containing required libs.
-LDFLAGS = -L. -L"C:\raylib\w64devkit\x86_64-w64-mingw32\lib" 
+LDFLAGS = -L. -L"C:\raylib\w64devkit\x86_64-w64-mingw32\lib" -L"C:\Program Files\boost_1_79_0" -lws2_32 
 
 ifneq ($(wildcard $(RAYLIB_RELEASE_PATH)/.*),)
     LDFLAGS += -L$(RAYLIB_RELEASE_PATH)

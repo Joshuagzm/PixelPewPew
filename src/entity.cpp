@@ -181,7 +181,15 @@ int entity::collisionHandler(entity * obj){
 bool entity::checkInSquare(int* squareWidth, int* squareHeight)
 {
     //function to check if an entity is within a square (usually the screen)
-    return checkInBounds(this->hitbox.x, float(0), float(*squareWidth)) && checkInBounds(this->hitbox.y,float(0), float(*squareHeight));
+    return  checkInBounds(this->hitbox.x, static_cast<float>(0), static_cast<float>(*squareWidth)) && 
+            checkInBounds(this->hitbox.y,static_cast<float>(0), static_cast<float>(*squareHeight));
+
+}
+
+bool entity::checkInTopless(int* squareWidth, int* squareHeight)
+{
+    //function to check if an entity is within a square (usually the screen)
+    return checkInBounds(this->hitbox.x, static_cast<float>(0), static_cast<float>(*squareWidth)) && (this->hitbox.y < *squareHeight);
 
 }
 

@@ -2,8 +2,38 @@
 #define ASIO_TEST_H
 
 #include <iostream>
-// #include <boost/asio.hpp>
-// #include <boost/array.hpp>
+#include <boost/asio.hpp>
+#include <boost/bind/bind.hpp>
+#include <boost/array.hpp>
+#include <thread>
+
+#include <ctime>
+#include <string>
+
+int asio_timer_test();
+
+class recurringTimer
+{
+   public:
+   recurringTimer(boost::asio::io_context& io);
+   ~recurringTimer();
+   void printMsg(int orange);
+   void printMsg2(int orange);
+
+   private:
+      int count_ {0};
+      int duration_ {1};
+      boost::asio::strand<boost::asio::io_context::executor_type> strand_;
+      boost::asio::steady_timer timer_;
+      boost::asio::steady_timer timer2_;
+};
+
+void syncDTServerTCP();
+void syncDTServerUDP();
+void syncDTClientUDP();
+void syncDTClientTCP();
+std::string makeDaytimeString();
+
 
 /*
 Networking notes:

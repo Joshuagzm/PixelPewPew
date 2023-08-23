@@ -92,6 +92,7 @@ class entity {
 
         //check entity methods
         bool checkInSquare(int* squareWidth, int* squareHeight);
+        bool checkInTopless(int* squareWidth, int* squareHeight);
 
         //check current grid occupation
         int updateGridOccupation();

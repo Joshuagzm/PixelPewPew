@@ -1,6 +1,14 @@
 #ifndef HEAD_H
 #define HEAD_H
 
+//BUGS TO FIX:
+/*
+ - WEIRD STICKING TO CORNERS OF PLATFORMS
+ - Not proper clearing of entities after screen change
+
+
+*/
+
 #include <iostream>
 #include <raylib.h>
 #include <vector>
@@ -12,6 +20,21 @@
 #include "include/functs.h"
 #include "include/grid.h"
 #include "include/stage.h"
+
+//avoid naming conflicts with windows functions
+#if defined(_WIN32)           
+	#define NOGDI             // All GDI defines and routines
+	#define NOUSER            // All USER defines and routines
+#endif
+
+#include "include/asio_test.h"
+
+#if defined(_WIN32)           // raylib uses these names as function parameters
+	#undef near
+	#undef far
+#endif
+
+////
 
 //Ideas! 
 /*

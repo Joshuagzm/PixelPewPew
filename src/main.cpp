@@ -7,7 +7,6 @@ void levelMainMenu();
 void levelWin();
 
 //update camera module declaration
-
 void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width, int height);
 
 ////
@@ -21,6 +20,34 @@ int main () {
 
     //set seed
     srand((unsigned) time(NULL));
+
+    //TIMER TESTS
+    if(false)
+    {
+    //test timer
+    boost::asio::io_context io;
+    //timer initialisation (timing starts from initialisation)
+    recurringTimer recurringTimer(io);
+    std::thread testThread(boost::bind(&boost::asio::io_context::run, &io));
+    }
+
+    //ASIO UDP COMMS TEST
+    std::cout<<"Enter operation mode:\n1: Client functionality\n2: Server functionality\nanything else: Run the game"<<std::endl;
+    int runMode {0};
+    std::cin>>runMode;
+
+    switch(runMode)
+    {
+        case 1://Client
+        {
+            syncDTClientUDP();
+        }break;
+        case 2://Server
+        {
+            syncDTServerUDP();
+        }break;
+        default: break;
+    }
 
     //grid initialise
     gridCell emptyCell;
@@ -73,8 +100,6 @@ int main () {
             protag.checkAttackInput(&attackVector);
 
             //CLIENT SIM
-
-        
 
             //UPDATE VALUES//
             protag.moveX();
@@ -167,7 +192,7 @@ int main () {
                     foe.collisionHandler(&plat);
                 }
                 //set the destruction bit
-                if( !foe.checkInSquare(&stageWidth, &stageHeight) )
+                if( !foe.checkInTopless(&stageWidth, &stageHeight) )
                 {
                     foe.isAlive = false;
                 }
@@ -209,6 +234,7 @@ int main () {
             gameState = requestState;
         }
     }
+    //testThread.join();
     CloseWindow();
     return 0;
 }
