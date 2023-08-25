@@ -28,11 +28,25 @@ class recurringTimer
       boost::asio::steady_timer timer2_;
 };
 
-void syncDTServerTCP();
-void syncDTServerUDP();
-void syncDTClientUDP();
-void syncDTClientTCP();
-std::string makeDaytimeString();
+void sendMessageLoop();
+
+class networkInstance
+{
+   public:
+      networkInstance(boost::asio::io_context& dt_io)
+         : socket_(dt_io)//initialise socket
+         {};
+      boost::asio::ip::udp::socket socket_;
+      std::shared_ptr<boost::array<char, 128>> recv_buf = std::make_shared<boost::array<char, 128>>();
+      boost::asio::ip::udp::endpoint syncDTServerUDP(boost::asio::io_context& dt_io, std::string& latestMessage);
+      boost::asio::ip::udp::endpoint syncDTClientUDP(boost::asio::io_context& dt_io, std::string& latestMessage);
+      void handleReceive(const boost::system::error_code& error, std::size_t bytesTransferred, std::string& latestMessage);
+
+      const int clientPort {30065};
+      const int serverPort {31065};
+      boost::asio::ip::udp::endpoint remote_endpoint;
+
+};
 
 
 /*

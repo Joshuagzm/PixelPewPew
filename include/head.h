@@ -15,6 +15,7 @@
 #include <cmath>
 #include <thread>
 #include <unordered_map>
+#include <boost/circular_buffer.hpp>
 #include "include/enemy.h"
 #include "include/player.h"
 #include "include/functs.h"
@@ -106,7 +107,7 @@ int stageHeight{600};
 int stageWidth{1800};
 
 bool collision;
-enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, WIN, DEAD, DUMMY};
+enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, WIN, DEAD, CHAT, NETCONF, DUMMY};
 screen prevState {DUMMY};
 screen gameState {TITLE};
 screen requestState {DUMMY};
@@ -115,6 +116,7 @@ std::deque<entity> platformVector;
 std::deque<projectileAttack> attackVector;
 std::deque<genericEnemy> enemyVector;
 std::deque<entity*> playerVector;
+
 
 bool gameReplay {true};
 bool gamePaused {true};

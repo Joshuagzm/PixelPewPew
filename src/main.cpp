@@ -5,9 +5,13 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera);
 void levelDead();
 void levelMainMenu();
 void levelWin();
+void levelNetConf();
+void levelChat(std::string& latestMessage);
 
 //update camera module declaration
 void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width, int height);
+
+void initialiseNetworkConf();
 
 ////
 //MAIN
@@ -21,33 +25,57 @@ int main () {
     //set seed
     srand((unsigned) time(NULL));
 
+    boost::asio::io_context io;
+    boost::circular_buffer<std::string> chatHistory;
+    std::string latestMessage;
+
     //TIMER TESTS
     if(false)
     {
     //test timer
-    boost::asio::io_context io;
     //timer initialisation (timing starts from initialisation)
     recurringTimer recurringTimer(io);
-    std::thread testThread(boost::bind(&boost::asio::io_context::run, &io));
     }
 
     //ASIO UDP COMMS TEST
     std::cout<<"Enter operation mode:\n1: Client functionality\n2: Server functionality\nanything else: Run the game"<<std::endl;
     int runMode {0};
     std::cin>>runMode;
+    boost::asio::ip::udp::endpoint partnerEndpoint;
+    bool DEBUGSOCKET;
+    networkInstance networkHandler(io);
+
 
     switch(runMode)
     {
         case 1://Client
         {
-            syncDTClientUDP();
+            std::string ipAddrStr{""};
+            std::cout<<"Enter server ip address:"<<std::endl;
+            std::cin >> ipAddrStr;
+            //convert IP address and port from string to correct type
+            networkHandler.remote_endpoint.address(boost::asio::ip::address::from_string(ipAddrStr));
+            networkHandler.remote_endpoint.port(networkHandler.serverPort);
+            partnerEndpoint = networkHandler.syncDTClientUDP(io, latestMessage);
         }break;
         case 2://Server
         {
-            syncDTServerUDP();
+            partnerEndpoint = networkHandler.syncDTServerUDP(io, latestMessage);
         }break;
         default: break;
     }
+
+    if(networkHandler.socket_.is_open()){
+        std::cout<<"SOCKET IS OK AT THREAD INIT"<<std::endl;
+    }
+
+    std::thread testThread([&]() {
+
+        io.run();
+        std::cout << "IO Context thread exiting..." << std::endl;
+    });
+
+    std::cout<<"Thread initialised"<<std::endl;
 
     //grid initialise
     gridCell emptyCell;
@@ -221,6 +249,16 @@ int main () {
                 levelWin();
 
             } break;
+            case CHAT:
+            {
+                levelChat(latestMessage);
+
+            } break;
+            case NETCONF:
+            {
+                levelNetConf();
+
+            } break;
             case EXITGAME:
             {
                 gameExitConfirmed = true;
@@ -234,7 +272,7 @@ int main () {
             gameState = requestState;
         }
     }
-    //testThread.join();
+    testThread.join();
     CloseWindow();
     return 0;
 }
@@ -449,6 +487,7 @@ void levelMainMenu(){
     const char * mainMenuTitle {"Pixel Pew Pew"};
     const char * mainMenuStart {"Start!"};
     const char * mainMenuQuit {"Quit"};
+    const char * mainMenuNetwork {"Network Configuration"};
 
     float titleSize {75};
     float optionSize {30};
@@ -459,14 +498,18 @@ void levelMainMenu(){
     float startY {400};
     float quitX {50};
     float quitY {450};
+    float networkX {50};
+    float networkY {500};
 
     auto titleColor{WHITE};
     auto startColor{WHITE};
     auto quitColor{WHITE};
+    auto networkColor{WHITE};
 
     //Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),mainMenuTitle, static_cast<float>(titleSize), 1)};
-    Vector2 startOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuStart, static_cast<float>(optionSize), 1.1)};
-    Vector2 quitOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuQuit, static_cast<float>(optionSize), 1.1)};
+    Vector2 startOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuStart, static_cast<float>(optionSize), 1.2)};
+    Vector2 quitOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuQuit, static_cast<float>(optionSize), 1.2)};
+    Vector2 networkOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuNetwork, static_cast<float>(optionSize), 1.2)};
 
     Vector2 mousePos{GetMousePosition()};
 
@@ -487,11 +530,150 @@ void levelMainMenu(){
     }else{
         quitColor = WHITE;
     }
+    if(isMouseInRect(mousePos, networkX, networkY, networkOptionDimensions)){
+        networkColor = GREEN;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            requestState = NETCONF;
+        }
+    }else{
+        networkColor = WHITE;
+    }
 
     //winCondition
     DrawText(TextFormat(mainMenuTitle), titleX, titleY, titleSize, titleColor);
     DrawText(TextFormat(mainMenuStart), startX, startY, optionSize, startColor);
     DrawText(TextFormat(mainMenuQuit), quitX, quitY, optionSize, quitColor);
+    DrawText(TextFormat(mainMenuNetwork), networkX, networkY, optionSize, networkColor);
+
+    EndDrawing();
+    
+}
+
+void levelNetConf(){
+    gamePaused = true;
+    //draw
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    const char * textTitle {"Network Config"};
+    const char * textServer {"Connect as Server"};
+    const char * textClient {"Connect as Client"};
+
+    float titleSize {50};
+    float optionSize {30};
+
+    //Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),mainMenuTitle, static_cast<float>(titleSize), 1)};
+    Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),textTitle, static_cast<float>(optionSize), 1.2)};
+    Vector2 serverDimensions { MeasureTextEx(GetFontDefault(),textServer, static_cast<float>(optionSize), 1.2)};
+    Vector2 clientDimensions { MeasureTextEx(GetFontDefault(),textClient, static_cast<float>(optionSize), 1.2)};
+
+    float titleX {screenWidth/2 - titleDimensions.x/2};
+    float titleY {75};
+    float serverX {screenWidth/2 - serverDimensions.x/2}; 
+    float serverY {200};
+    float clientX {screenWidth/2 - clientDimensions.x/2};
+    float clientY {300};
+
+    auto titleColor{WHITE};
+    auto serverColor{WHITE};
+    auto clientColor{WHITE};
+
+    Vector2 mousePos{GetMousePosition()};
+
+    //check for hover and click events
+    if(isMouseInRect(mousePos, serverX, serverY, serverDimensions)){
+        serverColor = GREEN;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            requestState = CHAT;
+        }
+    }else{
+        serverColor = WHITE;
+    }
+    if(isMouseInRect(mousePos, clientX, clientY, clientDimensions)){
+        clientColor = GREEN;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            requestState = CHAT;
+        }
+    }else{
+        clientColor = WHITE;
+    }
+
+    //winCondition
+    DrawText(TextFormat(textTitle), titleX, titleY, titleSize, titleColor);
+    DrawText(TextFormat(textServer), serverX, serverY, optionSize, serverColor);
+    DrawText(TextFormat(textClient), clientX, clientY, optionSize, clientColor);
+
+    EndDrawing();
+    
+}
+
+void levelChat(std::string& latestMessage){
+    gamePaused = true;
+    //draw
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    const char * textTitle {"Chat"};
+    const char * textServer {latestMessage.c_str()};
+    const char * textClient {"Connect as client"};
+    const char * textReturn {"Return to title"};
+
+    float titleSize {50};
+    float optionSize {30};
+
+    //Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),mainMenuTitle, static_cast<float>(titleSize), 1)};
+    Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),textTitle, static_cast<float>(optionSize), 1.2)};
+    Vector2 serverDimensions { MeasureTextEx(GetFontDefault(),textServer, static_cast<float>(optionSize), 1.2)};
+    Vector2 clientDimensions { MeasureTextEx(GetFontDefault(),textClient, static_cast<float>(optionSize), 1.2)};
+    Vector2 returnDimensions { MeasureTextEx(GetFontDefault(),textReturn, static_cast<float>(optionSize), 1.2)};
+
+    float titleX {screenWidth/2 - titleDimensions.x/2};
+    float titleY {75};
+    float serverX {screenWidth/2 - serverDimensions.x/2}; 
+    float serverY {200};
+    float clientX {screenWidth/2 - clientDimensions.x/2};
+    float clientY {300};
+    float returnX {screenWidth - returnDimensions.x - 50};
+    float returnY {500};
+
+    auto titleColor{WHITE};
+    auto serverColor{WHITE};
+    auto clientColor{WHITE};
+    auto returnColor{WHITE};
+
+    Vector2 mousePos{GetMousePosition()};
+
+    //check for hover and click events
+    if(isMouseInRect(mousePos, serverX, serverY, serverDimensions)){
+        serverColor = GREEN;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            requestState = CHAT;
+        }
+    }else{
+        serverColor = WHITE;
+    }
+    if(isMouseInRect(mousePos, clientX, clientY, clientDimensions)){
+        clientColor = GREEN;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            requestState = CHAT;
+        }
+    }else{
+        clientColor = WHITE;
+    }
+    if(isMouseInRect(mousePos, returnX, returnY, returnDimensions)){
+        returnColor = GREEN;
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            requestState = TITLE;
+        }
+    }else{
+        returnColor = WHITE;
+    }
+
+    //winCondition
+    DrawText(TextFormat(textTitle), titleX, titleY, titleSize, titleColor);
+    DrawText(TextFormat(textServer), serverX, serverY, optionSize, serverColor);
+    DrawText(TextFormat(textClient), clientX, clientY, optionSize, clientColor);
+    DrawText(TextFormat(textReturn), returnX, returnY, optionSize, returnColor);
 
     EndDrawing();
     
