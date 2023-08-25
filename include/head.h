@@ -21,6 +21,9 @@
 #include "include/functs.h"
 #include "include/grid.h"
 #include "include/stage.h"
+#include <queue>
+#include <mutex>
+#include <string>
 
 //avoid naming conflicts with windows functions
 #if defined(_WIN32)           
@@ -105,6 +108,7 @@ class platform {
 int randMsgIndex {0};
 int stageHeight{600};
 int stageWidth{1800};
+const double textMeasureFactor {3.0};
 
 bool collision;
 enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, WIN, DEAD, CHAT, NETCONF, DUMMY};
@@ -122,5 +126,8 @@ bool gameReplay {true};
 bool gamePaused {true};
 bool gameExitRequested {false};
 bool gameExitConfirmed {false};
+
+std::queue<std::string> receivedDataQueue;
+std::mutex queueMutex;
 
 #endif

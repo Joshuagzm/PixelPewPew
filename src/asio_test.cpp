@@ -54,7 +54,7 @@ int asio_timer_test()
 }
 
 //synchronous UDP daytime server
-boost::asio::ip::udp::endpoint networkInstance::syncDTServerUDP(boost::asio::io_context& dt_io, std::string& latestMessage)
+void networkInstance::syncDTServerUDP(boost::asio::io_context& dt_io)
 {
     using boost::asio::ip::udp;
     try
@@ -63,9 +63,6 @@ boost::asio::ip::udp::endpoint networkInstance::syncDTServerUDP(boost::asio::io_
         udp::endpoint localEndpoint(udp::v4(), serverPort);
         socket_.open(udp::v4()); 
         socket_.bind(localEndpoint);
-
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');//clear buffer
-        udp::endpoint remote_endpoint;//client endpoint
 
         std::cout<<"Waiting for client connection..."<<std::endl;
         //wait for connection
@@ -85,34 +82,29 @@ boost::asio::ip::udp::endpoint networkInstance::syncDTServerUDP(boost::asio::io_
         std::cout<<"Client connected!"<<std::endl;
 
         //async receive from
+        
         socket_.async_receive_from(//receive contact and store endpoint information in the remote_endpoint
             boost::asio::buffer(*recv_buf), remote_endpoint,
-            boost::bind(&handleReceive, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, latestMessage));
+            boost::bind(&handleReceive, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 
-        std::cout<<"Async receive task allocated"<<std::endl;
-
-        for (;;)
-        {
-            std::cout<<"Enter message: "<<std::endl;
-            std::getline(std::cin, message);
-            //send to client
-            socket_.send_to(boost::asio::buffer(message), remote_endpoint, 0, ignored_error);//0 is the flags
-        }
-        return remote_endpoint;
-
+        // for (;;)
+        // {
+        //     std::cout<<"Enter message: "<<std::endl;
+        //     std::getline(std::cin, message);
+        //     //send to client
+        //     socket_.send_to(boost::asio::buffer(message), remote_endpoint, 0, ignored_error);//0 is the flags
+        // }
     }
+
     catch(const std::exception& e)
     {
         std::cerr << e.what() << std::endl;
+        std::cerr<<"ERROR SOMETHING BAD HAPPENED IN ASIO_TEST_CPP"<<std::endl;
     }
-
-    std::cerr<<"ERROR SOMETHING BAD HAPPENED IN ASIO_TEST_CPP"<<std::endl;
-    udp::endpoint dummyEP;
-    return dummyEP;
 }
 
 
-boost::asio::ip::udp::endpoint networkInstance::syncDTClientUDP(boost::asio::io_context& dt_io, std::string& latestMessage)
+void networkInstance::syncDTClientUDP(boost::asio::io_context& dt_io)
 {
     using boost::asio::ip::udp;
     try
@@ -120,10 +112,7 @@ boost::asio::ip::udp::endpoint networkInstance::syncDTClientUDP(boost::asio::io_
         //initialise socket and bind to local endpoint
         udp::endpoint localEndpoint(udp::v4(), clientPort);
         socket_.open(udp::v4()); 
-        socket_.bind(localEndpoint);
-
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');//clear buffer
-        
+        socket_.bind(localEndpoint);        
         //three-way handshake
         // boost::array<char, 128> send_buf = {{0}};//dummy message to make contact with the server
         std::cout<<"Connecting..."<<std::endl;
@@ -136,51 +125,41 @@ boost::asio::ip::udp::endpoint networkInstance::syncDTClientUDP(boost::asio::io_
         socket_.send_to(boost::asio::buffer(message), remote_endpoint, 0, ignored_error);
         std::cout<<"Connected!"<<std::endl;
 
-        bool DEBUGSOCKET = socket_.is_open();
-        if(DEBUGSOCKET){
-            std::cout<<"SOCKET IS OK AT CLIENT OPEN"<<std::endl;
-        }
-
         //start message receiving process
         //async receive from
         socket_.async_receive_from(//receive contact and store endpoint information in the remote_endpoint
             boost::asio::buffer(*recv_buf), 
             remote_endpoint,
-            // [this, &socket, &receiver_endpoint, &latestMessage](const boost::system::error_code& error, std::size_t bytesTransferred) {
-            //     networkInstance::handleReceive(error, bytesTransferred, receiver_endpoint, recv_buf, &socket, latestMessage);
-            // });
-            boost::bind(&handleReceive, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, latestMessage));
-
-        std::cout<<"Async receive task allocated"<<std::endl;
-
-        return remote_endpoint;
+            [this](const boost::system::error_code& error, std::size_t bytesTransferred) {
+                networkInstance::handleReceive(error, bytesTransferred);
+            });
     }
     catch(const std::exception& e)
     {
         std::cerr << e.what() << '\n';
     }
 
-    std::cerr<<"ERROR SOMETHING BAD HAPPENED IN ASIO_TEST_CPP"<<std::endl;
-    udp::endpoint dummyEP;
-    return dummyEP;
 }
 
 //reception handler for async receive
-void networkInstance::handleReceive(const boost::system::error_code& error, std::size_t bytesTransferred, std::string& latestMessage)
+void networkInstance::handleReceive(const boost::system::error_code& error, std::size_t bytesTransferred)
 {
-    //DEBUG
-    bool isSocketOpen = socket_.is_open();
-    if(isSocketOpen){std::cout<<"SOCKET IS OK"<<std::endl;}
-    std::cout<<"RECEIVE HANDLER CALLED"<<std::endl;
     if(!error)
     {
         //print out message
         std::cout<<"Received: "<<bytesTransferred<<" many bytes... " << std::endl;
 
-        //reassigns latestMessage
-        latestMessage.assign(recv_buf->data(), bytesTransferred);
-
         //prints out message
+        std::string receivedData;
+        std::cout<<"Assigning to local var..."<<std::endl;
+        receivedData.assign(recv_buf->data(), bytesTransferred);
+        std::cout<<"Locking..."<<std::endl;
+        std::unique_lock<std::mutex> lock(queueMutex);
+        std::cout<<"Pushing into shared queue..."<<std::endl;
+        receivedDataQueue.push(receivedData);
+        lock.unlock();
+        std::cout<<"Reporting and requeueing async receive from"<<std::endl;
+
         std::cout.write(recv_buf->data(), bytesTransferred);
         std::cout<<std::endl;
 
@@ -191,8 +170,7 @@ void networkInstance::handleReceive(const boost::system::error_code& error, std:
             boost::bind(&handleReceive, 
                         this, 
                         boost::asio::placeholders::error, 
-                        boost::asio::placeholders::bytes_transferred, 
-                        latestMessage)
+                        boost::asio::placeholders::bytes_transferred)
         );
 
     }else{

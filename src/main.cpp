@@ -5,14 +5,14 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera);
 void levelDead();
 void levelMainMenu();
 void levelWin();
-void levelNetConf();
-void levelChat(std::string& latestMessage);
+void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected);
+void levelChat(std::string& latestMessage, bool& inputSelected, std::string& inputString, 
+                int chatHistoryLength, boost::circular_buffer<std::string>& chatBuffer, networkInstance& networkHandler);
+void createInputBox(Rectangle inputBox, Color& borderColor, Color& fillColor, Color& textColor, int textSize, Vector2 mousePos, std::string& tempString, bool& isSelected )
+;
 
 //update camera module declaration
 void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width, int height);
-
-void initialiseNetworkConf();
-
 ////
 //MAIN
 //// 
@@ -25,9 +25,31 @@ int main () {
     //set seed
     srand((unsigned) time(NULL));
 
+    //start io context
     boost::asio::io_context io;
-    boost::circular_buffer<std::string> chatHistory;
+    //ensure that the context never runs out of work
+    boost::asio::io_context::work dummyWork(io);
+    //circular buffer to keep limited chat history
+    int chatHistoryLength {10};
+    std::string textHistoryDefault{""};
+    boost::circular_buffer<std::string> chatBuffer(chatHistoryLength, textHistoryDefault);
+    //the latest message
     std::string latestMessage;
+    int runMode {0};
+    std::thread testThread([&io]() {
+        io.run();
+        std::cout << "IO Context thread exiting..." << std::endl;
+    });
+
+    networkInstance networkHandler(io);    
+
+    //ipaddress
+    std::string ipAddrStr{""};
+    bool inputSelected{false};
+
+    //generic text input string
+    std::string textInput{""};
+
 
     //TIMER TESTS
     if(false)
@@ -37,45 +59,7 @@ int main () {
     recurringTimer recurringTimer(io);
     }
 
-    //ASIO UDP COMMS TEST
-    std::cout<<"Enter operation mode:\n1: Client functionality\n2: Server functionality\nanything else: Run the game"<<std::endl;
-    int runMode {0};
-    std::cin>>runMode;
-    boost::asio::ip::udp::endpoint partnerEndpoint;
-    bool DEBUGSOCKET;
-    networkInstance networkHandler(io);
-
-
-    switch(runMode)
-    {
-        case 1://Client
-        {
-            std::string ipAddrStr{""};
-            std::cout<<"Enter server ip address:"<<std::endl;
-            std::cin >> ipAddrStr;
-            //convert IP address and port from string to correct type
-            networkHandler.remote_endpoint.address(boost::asio::ip::address::from_string(ipAddrStr));
-            networkHandler.remote_endpoint.port(networkHandler.serverPort);
-            partnerEndpoint = networkHandler.syncDTClientUDP(io, latestMessage);
-        }break;
-        case 2://Server
-        {
-            partnerEndpoint = networkHandler.syncDTServerUDP(io, latestMessage);
-        }break;
-        default: break;
-    }
-
-    if(networkHandler.socket_.is_open()){
-        std::cout<<"SOCKET IS OK AT THREAD INIT"<<std::endl;
-    }
-
-    std::thread testThread([&]() {
-
-        io.run();
-        std::cout << "IO Context thread exiting..." << std::endl;
-    });
-
-    std::cout<<"Thread initialised"<<std::endl;
+    
 
     //grid initialise
     gridCell emptyCell;
@@ -114,7 +98,14 @@ int main () {
 
     //GAME LOOP
     while (WindowShouldClose() == false && gameExitConfirmed == false){
-
+        //while looping, check the received data queue
+        std::unique_lock<std::mutex> lock(queueMutex);
+        if(!receivedDataQueue.empty())
+        {
+            chatBuffer.push_back("Received: " + receivedDataQueue.front());
+            receivedDataQueue.pop();
+        }
+        lock.unlock();
         //update camera
         updateCameraClamp(&camera, &protag, 0.0f, screenWidth, screenHeight);
 
@@ -227,6 +218,32 @@ int main () {
             }
         }
 
+        switch(runMode)
+        {
+            case 1://Client
+            {
+                //convert IP address and port from string to correct type
+                networkHandler.remote_endpoint.address(boost::asio::ip::address::from_string(ipAddrStr));
+                networkHandler.remote_endpoint.port(networkHandler.serverPort);
+                //connect to server as client
+                networkHandler.syncDTClientUDP(io);
+                //reset run mode
+                runMode = 0;
+            }break;
+            case 2://Server
+            {
+                networkHandler.syncDTServerUDP(io);
+                //reset run mode
+                runMode = 0;
+            }break;
+            case -1://stop service
+            {
+                io.stop();
+                runMode = 0;
+            }
+            default: break;
+        }
+
         //begin camera drawing
         //game stage state machine
         switch(gameState)
@@ -251,12 +268,12 @@ int main () {
             } break;
             case CHAT:
             {
-                levelChat(latestMessage);
+                levelChat(latestMessage, inputSelected, textInput, chatHistoryLength, chatBuffer, networkHandler);
 
             } break;
             case NETCONF:
             {
-                levelNetConf();
+                levelNetConf(runMode, ipAddrStr, inputSelected);
 
             } break;
             case EXITGAME:
@@ -272,6 +289,7 @@ int main () {
             gameState = requestState;
         }
     }
+    io.stop();
     testThread.join();
     CloseWindow();
     return 0;
@@ -279,7 +297,6 @@ int main () {
 
 void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width, int height)
 {
-    
     //camera is focused on the player, and the object of focus is kept at the center of the screen
     //target locates the origin, and offset tells where the offset is on the screen
 
@@ -391,8 +408,8 @@ void levelWin(){
     //text definitions
     const char * promptMessage = "return to menu";
 
-    Vector2 messasgeDimensions { MeasureTextEx(GetFontDefault(),winMessage, static_cast<float>(messasgeSize), 2)};
-    Vector2 promptDimensions { MeasureTextEx(GetFontDefault(),promptMessage, static_cast<float>(promptSize), 2)};
+    Vector2 messasgeDimensions { MeasureTextEx(GetFontDefault(),winMessage, static_cast<float>(messasgeSize), textMeasureFactor)};
+    Vector2 promptDimensions { MeasureTextEx(GetFontDefault(),promptMessage, static_cast<float>(promptSize), textMeasureFactor)};
 
     //determine the position 
     float messasgeX {screenWidth/2 - messasgeDimensions.x/2};
@@ -447,8 +464,8 @@ void levelDead(){
     const char * deathMessage = deathMessages.at(randMsgIndex);
     const char * promptMessage = "return to menu";
 
-    Vector2 messasgeDimensions { MeasureTextEx(GetFontDefault(),deathMessage, static_cast<float>(messasgeSize), 2)};
-    Vector2 promptDimensions { MeasureTextEx(GetFontDefault(),promptMessage, static_cast<float>(promptSize), 2)};
+    Vector2 messasgeDimensions { MeasureTextEx(GetFontDefault(),deathMessage, static_cast<float>(messasgeSize), textMeasureFactor)};
+    Vector2 promptDimensions { MeasureTextEx(GetFontDefault(),promptMessage, static_cast<float>(promptSize), textMeasureFactor)};
 
     //determine the position 
     float messasgeX {screenWidth/2 - messasgeDimensions.x/2};
@@ -507,9 +524,9 @@ void levelMainMenu(){
     auto networkColor{WHITE};
 
     //Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),mainMenuTitle, static_cast<float>(titleSize), 1)};
-    Vector2 startOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuStart, static_cast<float>(optionSize), 1.2)};
-    Vector2 quitOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuQuit, static_cast<float>(optionSize), 1.2)};
-    Vector2 networkOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuNetwork, static_cast<float>(optionSize), 1.2)};
+    Vector2 startOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuStart, static_cast<float>(optionSize), textMeasureFactor)};
+    Vector2 quitOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuQuit, static_cast<float>(optionSize), textMeasureFactor)};
+    Vector2 networkOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuNetwork, static_cast<float>(optionSize), textMeasureFactor)};
 
     Vector2 mousePos{GetMousePosition()};
 
@@ -549,13 +566,14 @@ void levelMainMenu(){
     
 }
 
-void levelNetConf(){
+void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected){
     gamePaused = true;
     //draw
     BeginDrawing();
     ClearBackground(BLACK);
+    Vector2 mousePos{GetMousePosition()};
 
-    const char * textTitle {"Network Config"};
+    const char * textTitle  {"Network Config"};
     const char * textServer {"Connect as Server"};
     const char * textClient {"Connect as Client"};
 
@@ -563,27 +581,36 @@ void levelNetConf(){
     float optionSize {30};
 
     //Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),mainMenuTitle, static_cast<float>(titleSize), 1)};
-    Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),textTitle, static_cast<float>(optionSize), 1.2)};
-    Vector2 serverDimensions { MeasureTextEx(GetFontDefault(),textServer, static_cast<float>(optionSize), 1.2)};
-    Vector2 clientDimensions { MeasureTextEx(GetFontDefault(),textClient, static_cast<float>(optionSize), 1.2)};
+    Vector2 titleDimensions  { MeasureTextEx(GetFontDefault(),textTitle, static_cast<float>(titleSize), textMeasureFactor)};
+    Vector2 serverDimensions { MeasureTextEx(GetFontDefault(),textServer, static_cast<float>(optionSize), textMeasureFactor)};
+    Vector2 clientDimensions { MeasureTextEx(GetFontDefault(),textClient, static_cast<float>(optionSize), textMeasureFactor)};
 
-    float titleX {screenWidth/2 - titleDimensions.x/2};
-    float titleY {75};
+    float titleX  {screenWidth/2 - titleDimensions.x/2};
+    float titleY  {75};
     float serverX {screenWidth/2 - serverDimensions.x/2}; 
     float serverY {200};
     float clientX {screenWidth/2 - clientDimensions.x/2};
     float clientY {300};
 
-    auto titleColor{WHITE};
+    auto titleColor {WHITE};
     auto serverColor{WHITE};
     auto clientColor{WHITE};
 
-    Vector2 mousePos{GetMousePosition()};
+    //setup input box
+    Rectangle inputBox   {screenWidth/2 - screenWidth/4, clientY + 75, screenWidth/2, 35};
+    auto inputColorBorder{WHITE};
+    auto inputColorFill  {BLACK};
+    auto inputColorText  {WHITE};
+    int inputSize        {20};
+
+    createInputBox(inputBox, inputColorBorder, inputColorFill, inputColorText, inputSize, mousePos, ipAddrStr, inputSelected);
+
 
     //check for hover and click events
     if(isMouseInRect(mousePos, serverX, serverY, serverDimensions)){
         serverColor = GREEN;
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            runMode = 2;
             requestState = CHAT;
         }
     }else{
@@ -592,22 +619,49 @@ void levelNetConf(){
     if(isMouseInRect(mousePos, clientX, clientY, clientDimensions)){
         clientColor = GREEN;
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+            runMode = 1;
             requestState = CHAT;
         }
     }else{
         clientColor = WHITE;
     }
 
-    //winCondition
     DrawText(TextFormat(textTitle), titleX, titleY, titleSize, titleColor);
     DrawText(TextFormat(textServer), serverX, serverY, optionSize, serverColor);
     DrawText(TextFormat(textClient), clientX, clientY, optionSize, clientColor);
+
+    const char * textWarning {"WIP - Game will freeze while connecting, this is expected."};
+    Vector2 warningDimensions { MeasureTextEx(GetFontDefault(),textWarning, static_cast<float>(inputSize), textMeasureFactor)};
+    DrawText(TextFormat(textWarning), screenWidth/2 - warningDimensions.x/2, 560, inputSize, RED);
+
+    //Display Connecting status
+    std::string textConnecting;
+
+    switch(runMode)
+    {
+        case 1:
+        {
+            textConnecting = "Attempting to connect to server...";
+        }break;
+        case 2:
+        {
+            textConnecting = "Waiting for client to connect...";
+        }
+    }
+
+    if(runMode > 0 && runMode < 3)
+    {
+        Vector2 connectingDimensions { MeasureTextEx(GetFontDefault(),textConnecting.c_str(), static_cast<float>(optionSize), textMeasureFactor)};
+        DrawText(TextFormat(textConnecting.c_str()), screenWidth/2 - connectingDimensions.x/2, 500, optionSize, YELLOW);
+    }
 
     EndDrawing();
     
 }
 
-void levelChat(std::string& latestMessage){
+void levelChat(std::string& latestMessage, bool& inputSelected, std::string& inputString, 
+                int chatHistoryLength, boost::circular_buffer<std::string>& chatBuffer, networkInstance& networkHandler)
+{
     gamePaused = true;
     //draw
     BeginDrawing();
@@ -622,10 +676,10 @@ void levelChat(std::string& latestMessage){
     float optionSize {30};
 
     //Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),mainMenuTitle, static_cast<float>(titleSize), 1)};
-    Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),textTitle, static_cast<float>(optionSize), 1.2)};
-    Vector2 serverDimensions { MeasureTextEx(GetFontDefault(),textServer, static_cast<float>(optionSize), 1.2)};
-    Vector2 clientDimensions { MeasureTextEx(GetFontDefault(),textClient, static_cast<float>(optionSize), 1.2)};
-    Vector2 returnDimensions { MeasureTextEx(GetFontDefault(),textReturn, static_cast<float>(optionSize), 1.2)};
+    Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),textTitle, static_cast<float>(titleSize), textMeasureFactor)};
+    Vector2 serverDimensions { MeasureTextEx(GetFontDefault(),textServer, static_cast<float>(optionSize), textMeasureFactor)};
+    Vector2 clientDimensions { MeasureTextEx(GetFontDefault(),textClient, static_cast<float>(optionSize), textMeasureFactor)};
+    Vector2 returnDimensions { MeasureTextEx(GetFontDefault(),textReturn, static_cast<float>(optionSize), textMeasureFactor)};
 
     float titleX {screenWidth/2 - titleDimensions.x/2};
     float titleY {75};
@@ -634,7 +688,7 @@ void levelChat(std::string& latestMessage){
     float clientX {screenWidth/2 - clientDimensions.x/2};
     float clientY {300};
     float returnX {screenWidth - returnDimensions.x - 50};
-    float returnY {500};
+    float returnY {550};
 
     auto titleColor{WHITE};
     auto serverColor{WHITE};
@@ -643,6 +697,42 @@ void levelChat(std::string& latestMessage){
 
     Vector2 mousePos{GetMousePosition()};
 
+    //set up input box
+    auto inputColorBorder{WHITE};
+    auto inputColorFill{BLACK};
+    auto inputColorText{WHITE};
+    int inputSize {20};
+    Rectangle inputBox{screenWidth/2 - 0.75*screenWidth/2, 450, 0.75*screenWidth, 35};
+    //create, configure and draw input box
+    createInputBox(inputBox,inputColorBorder, inputColorFill, inputColorText, inputSize, mousePos, inputString, inputSelected);
+
+    //draw chat box outer
+    Rectangle chatHistory{inputBox.x, inputBox.y - 320, inputBox.width, 300};
+    DrawRectangleLines(chatHistory.x, chatHistory.y, chatHistory.width, chatHistory.height, GRAY);
+    //fill with text
+    int chatHistorySize = 20;
+    for (int i = 0; i < chatHistoryLength; i++)
+    {
+        //draw the text found in the circular buffer
+        DrawText(chatBuffer[i].c_str(), chatHistory.x + 10, chatHistory.y + 4 + (30*i), chatHistorySize, WHITE);
+    }
+
+    //check for send command
+    if(inputSelected)
+    {
+        if(IsKeyPressed(KEY_ENTER) && !inputString.empty())
+        {
+            boost::system::error_code ignored_error;
+            //send text through to the other side
+            networkHandler.socket_.send_to(boost::asio::buffer(inputString), networkHandler.remote_endpoint, 0, ignored_error);
+            //store text into the circular buffer
+            chatBuffer.push_back("Me: " + inputString);
+            //clear text
+            inputString.clear();
+        }
+    }
+
+    
     //check for hover and click events
     if(isMouseInRect(mousePos, serverX, serverY, serverDimensions)){
         serverColor = GREEN;
@@ -671,10 +761,56 @@ void levelChat(std::string& latestMessage){
 
     //winCondition
     DrawText(TextFormat(textTitle), titleX, titleY, titleSize, titleColor);
-    DrawText(TextFormat(textServer), serverX, serverY, optionSize, serverColor);
-    DrawText(TextFormat(textClient), clientX, clientY, optionSize, clientColor);
     DrawText(TextFormat(textReturn), returnX, returnY, optionSize, returnColor);
 
     EndDrawing();
     
+}
+
+void createInputBox(Rectangle inputBox, Color& borderColor, Color& fillColor, Color& textColor, int textSize, Vector2 mousePos, std::string& tempString, bool& isSelected )
+{
+//check for hover and click events
+    if(isMouseInRect(mousePos, inputBox.x, inputBox.y, {inputBox.width, inputBox.height})){
+        SetMouseCursor(MOUSE_CURSOR_IBEAM);
+    }else{
+        SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+    }
+
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){// click event
+        if(isMouseInRect(mousePos, inputBox.x, inputBox.y, {inputBox.width, inputBox.height})){
+            isSelected = true;
+        }else{
+            isSelected = false;
+        }
+    }
+
+    if(isSelected){
+        int key = GetCharPressed();
+        borderColor = GREEN;
+        fillColor = GRAY;
+        while (key > 0) //check for multiple keypresses at once
+        {
+            if ((key >= 32) && (key <= 125)){
+                tempString += (char)key;
+            }
+            key = GetCharPressed();
+        }
+        //handle backspace
+        if (IsKeyPressed(KEY_BACKSPACE))
+        {
+            if(!tempString.empty()){
+                tempString.erase(tempString.size() - 1);
+            }
+        }
+    }else{
+        borderColor = WHITE;
+        fillColor = BLACK;
+    }
+
+    // Vector2 inputDimensions { MeasureTextEx(GetFontDefault(),tempString.c_str(), static_cast<float>(textSize), textMeasureFactor)};
+
+    //Draw rectangle outline, then filling
+    DrawRectangleRec(inputBox, fillColor);
+    DrawRectangleLines(inputBox.x, inputBox.y, inputBox.width, inputBox.height, borderColor);
+    DrawText(tempString.c_str(), inputBox.x + 10, inputBox.y + 8, textSize, textColor);
 }

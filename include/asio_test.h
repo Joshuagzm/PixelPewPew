@@ -6,6 +6,8 @@
 #include <boost/bind/bind.hpp>
 #include <boost/array.hpp>
 #include <thread>
+#include <queue>
+#include <mutex>
 
 #include <ctime>
 #include <string>
@@ -28,6 +30,9 @@ class recurringTimer
       boost::asio::steady_timer timer2_;
 };
 
+extern std::queue<std::string> receivedDataQueue;
+extern std::mutex queueMutex;
+
 void sendMessageLoop();
 
 class networkInstance
@@ -38,9 +43,9 @@ class networkInstance
          {};
       boost::asio::ip::udp::socket socket_;
       std::shared_ptr<boost::array<char, 128>> recv_buf = std::make_shared<boost::array<char, 128>>();
-      boost::asio::ip::udp::endpoint syncDTServerUDP(boost::asio::io_context& dt_io, std::string& latestMessage);
-      boost::asio::ip::udp::endpoint syncDTClientUDP(boost::asio::io_context& dt_io, std::string& latestMessage);
-      void handleReceive(const boost::system::error_code& error, std::size_t bytesTransferred, std::string& latestMessage);
+      void syncDTServerUDP(boost::asio::io_context& dt_io);
+      void syncDTClientUDP(boost::asio::io_context& dt_io);
+      void handleReceive(const boost::system::error_code& error, std::size_t bytesTransferred);
 
       const int clientPort {30065};
       const int serverPort {31065};
