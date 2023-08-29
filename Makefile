@@ -281,7 +281,7 @@ ifeq ($(PLATFORM),PLATFORM_DESKTOP)
 endif
 
 # Define library paths containing required libs.
-LDFLAGS = -L. -L"C:\raylib\w64devkit\x86_64-w64-mingw32\lib" -L"C:\Program Files\boost_1_79_0" -lws2_32 
+LDFLAGS = -L. -L"C:\raylib\w64devkit\x86_64-w64-mingw32\lib" -L"C:\Program Files\boost_1_79_0" -L"C:\Program Files\boost_1_79_0\stage\lib"  
 
 ifneq ($(wildcard $(RAYLIB_RELEASE_PATH)/.*),)
     LDFLAGS += -L$(RAYLIB_RELEASE_PATH)
@@ -315,7 +315,7 @@ ifeq ($(PLATFORM),PLATFORM_DESKTOP)
     ifeq ($(PLATFORM_OS),WINDOWS)
         # Libraries for Windows desktop compilation
         # NOTE: WinMM library required to set high-res timer resolution
-        LDLIBS = -lraylib -lopengl32 -lgdi32 -lwinmm
+        LDLIBS = -lraylib -lopengl32 -lgdi32 -lwinmm -lboost_serialization-mgw12-mt-x64-1_79 -lws2_32
         # Required for physac examples
         #LDLIBS += -static -lpthread
     endif

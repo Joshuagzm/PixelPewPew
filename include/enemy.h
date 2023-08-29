@@ -31,9 +31,11 @@ class enemyDirector: public entity
         int spawnTimer;
         int spawnThresh;
         int currentID;
+        bool isRunning {false};
 
         //methods
         genericEnemy spawnCommand();
+        void tickUpdate(std::deque<genericEnemy>& enemyList);
 
 };
 

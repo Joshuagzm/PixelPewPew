@@ -68,3 +68,15 @@ int genericEnemy::updateMovement(float playerX, float playerY)
     this->hitbox.y += this->speedY;
     return 0;
 }
+
+//function to update the enemy director on each tick
+void enemyDirector::tickUpdate(std::deque<genericEnemy>& enemyList)
+{
+    //update spawn timer
+    this->spawnTimer += 1;
+    if(this->spawnTimer >= this->spawnThresh)
+    {
+        enemyList.push_back(this->spawnCommand());
+        this->spawnTimer = 0;
+    }
+}

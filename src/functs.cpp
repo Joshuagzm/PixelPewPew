@@ -85,3 +85,61 @@ int cappedAddition(int currentVal, int addVal, int limit){
         return currentVal + addVal;
     }
 }
+
+//function to get the serialised header of a string message
+std::string getSerialisedStrHeader(uint32_t strSize)
+{
+    std::stringstream ss;
+    boost::archive::text_oarchive oarchive(ss);
+    messageHeader strHeader;
+    strHeader.bodySize = strSize;
+    strHeader.msgType = M_STR;
+    oarchive << strHeader;
+    std::string paddedHeader{padHeader(ss.str())};
+    return paddedHeader;
+}
+
+//function to append header with a 10 character 0 padded string indicating size of the header
+std::string padHeader(std::string header)
+{
+    //return size appended string
+    std::string headerSize{std::to_string(header.size())};
+    std::string headerSizePad{""};
+    //pad to get 10 characters max
+    while(headerSize.size() + headerSizePad.size() < 10){
+        headerSizePad += "0";
+    }
+    return headerSizePad + headerSize + header;
+}
+
+//function to read a certain number of bytes from a queue
+std::string getBytesFromQueue(std::deque<std::string>& stringQueue, uint32_t bytesToRead)
+{
+    std::string readString;
+
+    //loop through the queue
+    while(!stringQueue.empty() && bytesToRead > 0)
+    {
+        //find the size of the front of the queue
+        std::string& frontString = stringQueue.front();
+
+        if(frontString.size() <= bytesToRead)
+        {
+            readString += frontString;
+            bytesToRead -= frontString.size();
+            stringQueue.pop_front();
+            //read the entirety of the string
+        }else if(frontString.size() > bytesToRead){ //the string is bigger than what we need, so we only read part of it
+            readString += frontString.substr(0, bytesToRead); //read remainingBytes from the frontString, reassigning it to be the unread remainder of the string
+            frontString = frontString.substr(bytesToRead);
+            bytesToRead = 0;            
+        }
+    }
+
+    if(bytesToRead <= 0){
+        return readString;
+    }else{//not enough data, body or header incomplete
+        stringQueue.push_front(readString);
+        return "";
+    }
+}

@@ -289,3 +289,28 @@ std::vector<entity *> entity::checkCloseEntities()
     }
     return closeEntities;
 }
+
+std::string entity::getSerialisedEntity()
+{
+    std::stringstream ss;
+    boost::archive::text_oarchive oarchive(ss);
+    oarchive << this;
+    return ss.str();
+}
+
+std::string entity::getSerialisedEntityHeader(uint32_t bodySize)
+{
+    //initialise string stream, archive and temp header obj
+    std::stringstream ss;
+    boost::archive::text_oarchive oarchive(ss);
+    messageHeader entHeader;
+    //fill header fields
+    entHeader.bodySize = bodySize;
+    entHeader.headerUUID = boost::uuids::to_string(this->entityID);
+    entHeader.msgType = M_ENTITY;
+    //archive
+    oarchive << entHeader;
+    //pad header
+    std::string paddedHeader{padHeader(ss.str())};
+    return paddedHeader;
+}

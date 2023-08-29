@@ -146,22 +146,17 @@ void networkInstance::handleReceive(const boost::system::error_code& error, std:
 {
     if(!error)
     {
-        //print out message
-        std::cout<<"Received: "<<bytesTransferred<<" many bytes... " << std::endl;
-
         //prints out message
         std::string receivedData;
-        std::cout<<"Assigning to local var..."<<std::endl;
+        //assign string from buffer
         receivedData.assign(recv_buf->data(), bytesTransferred);
-        std::cout<<"Locking..."<<std::endl;
+        //lock
         std::unique_lock<std::mutex> lock(queueMutex);
-        std::cout<<"Pushing into shared queue..."<<std::endl;
-        receivedDataQueue.push(receivedData);
+        receivedDataQueue.push_back(receivedData);
         lock.unlock();
-        std::cout<<"Reporting and requeueing async receive from"<<std::endl;
 
-        std::cout.write(recv_buf->data(), bytesTransferred);
-        std::cout<<std::endl;
+        //clear the buffer
+        recv_buf->fill(0);
 
         //async receive again
         socket_.async_receive_from(//receive contact and store endpoint information in the remote_endpoint
@@ -179,7 +174,11 @@ void networkInstance::handleReceive(const boost::system::error_code& error, std:
     }
 }
 
-void sendMessageLoop()
+//function to automatically form and serialise the header and serialise the body and send to the recipient
+void networkInstance::sendMessage(std::string header, std::string body)
 {
-
+    boost::system::error_code ignored_error;
+    std::string msg{header + body};
+    std::cout<<"SENDING BODY: "<<body<<std::endl;
+    this->socket_.send_to(boost::asio::buffer(header + body), this->remote_endpoint, 0, ignored_error);
 }

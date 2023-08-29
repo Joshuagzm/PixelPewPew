@@ -25,18 +25,60 @@
 #include <mutex>
 #include <string>
 
-//avoid naming conflicts with windows functions
-#if defined(_WIN32)           
-	#define NOGDI             // All GDI defines and routines
-	#define NOUSER            // All USER defines and routines
-#endif
-
 #include "include/asio_test.h"
 
-#if defined(_WIN32)           // raylib uses these names as function parameters
-	#undef near
-	#undef far
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/string.hpp>
+
+
+class platform {
+  public:
+      int width;
+      int height;
+      int posX;
+      int posY;
+};
+
+int randMsgIndex {0};
+int stageHeight{600};
+int stageWidth{1800};
+const double textMeasureFactor {3.0};
+const uint32_t headerPadSize{10};
+
+
+bool collision;
+networkClass peerType {DEFAULT};
+screen prevState {DUMMY};
+screen gameState {TITLE};
+screen requestState {DUMMY};
+
+std::deque<entity> platformVector;
+std::deque<projectileAttack> attackVector;
+std::deque<genericEnemy> enemyVector;
+std::deque<entity*> playerVector;
+
+
+bool gameReplay {true};
+bool gamePaused {true};
+bool gameExitRequested {false};
+bool gameExitConfirmed {false};
+
+std::deque<std::string> receivedDataQueue;
+std::mutex queueMutex;
+
+//Level module declarations
+void level1(player* protag, int* killCount, int* winCount, Camera2D* camera);
+void levelDead();
+void levelMainMenu();
+void levelWin();
+void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected);
+void levelChat(std::string& latestMessage, bool& inputSelected, std::string& inputString, 
+                int chatHistoryLength, boost::circular_buffer<std::string>& chatBuffer, networkInstance& networkHandler);
+void createInputBox(Rectangle inputBox, Color& borderColor, Color& fillColor, Color& textColor, int textSize, Vector2 mousePos, std::string& tempString, bool& isSelected );
+
 #endif
+
 
 ////
 
@@ -96,38 +138,3 @@ Every level:
  - X Adding platforms/objects
  - Removing platforms/objects
 */
-
-class platform {
-  public:
-      int width;
-      int height;
-      int posX;
-      int posY;
-};
-
-int randMsgIndex {0};
-int stageHeight{600};
-int stageWidth{1800};
-const double textMeasureFactor {3.0};
-
-bool collision;
-enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, WIN, DEAD, CHAT, NETCONF, DUMMY};
-screen prevState {DUMMY};
-screen gameState {TITLE};
-screen requestState {DUMMY};
-
-std::deque<entity> platformVector;
-std::deque<projectileAttack> attackVector;
-std::deque<genericEnemy> enemyVector;
-std::deque<entity*> playerVector;
-
-
-bool gameReplay {true};
-bool gamePaused {true};
-bool gameExitRequested {false};
-bool gameExitConfirmed {false};
-
-std::queue<std::string> receivedDataQueue;
-std::mutex queueMutex;
-
-#endif

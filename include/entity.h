@@ -17,6 +17,11 @@
 #include <boost/uuid/uuid_generators.hpp>   //uuid generator
 #include <boost/uuid/uuid_io.hpp>
 
+//serialisation
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/string.hpp>
+
 /**
  * Entity super class
  * 
@@ -101,8 +106,19 @@ class entity {
         int removeGridOccupation(pairSetType cellsToRemove);
         int addGridOccupation(pairSetType cellsToAdd);
         void killEntity();
-        //related hitboxes
-
+        
+        //serialisation
+        template <class Archive>
+        void serialize(Archive &a, const unsigned version){
+            std::string strEntityID{boost::uuids::to_string(entityID)};
+            a & strEntityID; 
+            a & hitbox.x;
+            a & hitbox.y;
+            a & hitbox.width;
+            a & hitbox.height;
+        }
+        std::string getSerialisedEntity();
+        std::string getSerialisedEntityHeader(uint32_t bodySize);
 };
 
 #endif

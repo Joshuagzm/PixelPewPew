@@ -43,6 +43,12 @@ class player: public entity {
     int initLoop();//initialises values at beginning of loop
     int fireProjectile(std::deque<projectileAttack>* attackVector);
     int spawnProjectile();
+
+    template<class Archive> void serialize(Archive & ar, const unsigned int version)
+    {
+        //serialise base class
+        ar & boost::serialization::base_object<entity>(*this);
+    }
 };
 
 

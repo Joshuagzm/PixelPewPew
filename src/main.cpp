@@ -1,15 +1,6 @@
 #include "include/head.h"
 
-//Level module declarations
-void level1(player* protag, int* killCount, int* winCount, Camera2D* camera);
-void levelDead();
-void levelMainMenu();
-void levelWin();
-void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected);
-void levelChat(std::string& latestMessage, bool& inputSelected, std::string& inputString, 
-                int chatHistoryLength, boost::circular_buffer<std::string>& chatBuffer, networkInstance& networkHandler);
-void createInputBox(Rectangle inputBox, Color& borderColor, Color& fillColor, Color& textColor, int textSize, Vector2 mousePos, std::string& tempString, bool& isSelected )
-;
+
 
 //update camera module declaration
 void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width, int height);
@@ -17,8 +8,7 @@ void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width,
 //MAIN
 //// 
 int main () {
-    //INITIALISATION
-    //initialise screen
+    //SERVER CLIENT COMMON
     InitWindow(screenWidth, screenHeight, "A platformer?");
     SetTargetFPS(targetFPS);
 
@@ -46,9 +36,13 @@ int main () {
     //ipaddress
     std::string ipAddrStr{""};
     bool inputSelected{false};
-
     //generic text input string
     std::string textInput{""};
+
+    //Communication state and reading variables
+    int readingState {0};//integer representing reading state: 0 - Header, 1 - body;
+    uint32_t headerSize{0};
+    uint32_t bodySize{0};
 
 
     //TIMER TESTS
@@ -59,8 +53,6 @@ int main () {
     recurringTimer recurringTimer(io);
     }
 
-    
-
     //grid initialise
     gridCell emptyCell;
     for (auto& cell : pairInterpolator(std::make_pair(getCurrentCol(0),getCurrentRow(0)), std::make_pair(getCurrentCol(stageWidth), getCurrentRow(stageHeight))))
@@ -68,23 +60,25 @@ int main () {
         gridContainer.insert(std::make_pair(cell,emptyCell));
     }
 
+    //SERVER ONLY
     //initialise enemy director - THREAD1
     enemyDirector enemyDir;
     enemyDir.spawnThresh = 5*targetFPS;
     enemyDir.spawnTimer = enemyDir.spawnThresh-targetFPS;
 
+    //COMMON
     //initialise player 
     player protag;
     protag.initPlayer();
     protag.playerIndex = playerVector.size();
     playerVector.push_back(&protag);
 
-    //initialise player 2 CLIENT SIM
-    player pFriend;
-    pFriend.initPlayer();
-    pFriend.playerIndex = playerVector.size();
-    playerVector.push_back(&pFriend);
+    player p_client;
+    p_client.initPlayer();
+    p_client.playerIndex = playerVector.size();
+    playerVector.push_back(&p_client);
 
+    //COMMON
     //initialise camera
     Camera2D camera {{0}};
     camera.target = (Vector2){ protag.hitbox.x, protag.hitbox.y };
@@ -92,18 +86,90 @@ int main () {
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
 
+    //Common
     //initialise win condition
     int winCount {10};
     int killCount {0};
 
     //GAME LOOP
     while (WindowShouldClose() == false && gameExitConfirmed == false){
+        //COMMON
         //while looping, check the received data queue
         std::unique_lock<std::mutex> lock(queueMutex);
-        if(!receivedDataQueue.empty())
+
+        //initialise reading variables
+        messageType readMsgType{M_MISC};
+        bool isReading{true};
+        //loop untill all is read 
+        while(!receivedDataQueue.empty() && isReading)
         {
-            chatBuffer.push_back("Received: " + receivedDataQueue.front());
-            receivedDataQueue.pop();
+            switch(readingState)
+                {
+                    case 0: //read header
+                    {
+                        //first, read padding to obtaint headerSize
+                        std::string headerPadStr{getBytesFromQueue(receivedDataQueue, headerPadSize)};
+                        //convert to size
+                        headerSize = static_cast<uint32_t>(std::stoul(headerPadStr));
+                        //initialise istream and read header from queue contents
+                        std::string queueString{getBytesFromQueue(receivedDataQueue, headerSize)};
+                        if(queueString.empty()){
+                            isReading = false;
+                            break;
+                        }
+                        std::stringstream ss(queueString);
+                        boost::archive::text_iarchive iarchive(ss);
+
+                        //deserialise header into dummy header object
+                        messageHeader readHeader;
+                        iarchive >> readHeader;
+                        bodySize = readHeader.bodySize;
+                        readMsgType = readHeader.msgType;
+
+                        readingState = 1;
+                    }break;
+
+                    case 1:
+                    {
+                        //initialise istream and read header from queue contents
+                        std::string queueString{getBytesFromQueue(receivedDataQueue, bodySize)};
+                        if(queueString.empty()){
+                            isReading = false;
+                            break;
+                        }
+
+                        switch(readMsgType)
+                        {
+                            //handle player information
+                            case M_ENTITY:
+                            {
+                                //deserialise into player object
+                                std::stringstream ss(queueString);
+                                boost::archive::text_iarchive iarchive(ss);
+                                player tempPlayer;
+                                iarchive >> p_client;
+                                std::cout<<"Received player from network X: "<<p_client.hitbox.x<<" Y: "<<p_client.hitbox.y<<std::endl;
+                            }break;
+
+                            //handle as plain string
+                            case M_STR:
+                            {
+                            //string handled as-is
+                            chatBuffer.push_back("Received: " + queueString);
+                            }break;
+                            
+                            //default case, fallthrough
+                            case M_MISC: break;
+                        }
+                        readingState = 0;
+                    }break;
+
+                    default:
+                    {
+                        std::cerr<<"ERRORING SOMETHING WENT WRONG WITH THE READING"<<std::endl;
+                    }break;
+
+                }
         }
         lock.unlock();
         //update camera
@@ -111,9 +177,9 @@ int main () {
 
         //Code that should run during gameplay
         if(gamePaused != true){
+            //LOCAL PLAYER CONTROL
             //Initialisations
             protag.initLoop();
-
             //Movement handling
             protag.checkMoveInput();
             protag.checkAttackInput(&attackVector);
@@ -170,14 +236,11 @@ int main () {
                 }
             }
 
-            //update spawn timer
-            enemyDir.spawnTimer += 1;
-            if(enemyDir.spawnTimer >= enemyDir.spawnThresh)
-            {
-                enemyVector.push_back(enemyDir.spawnCommand());
-                enemyDir.spawnTimer = 0;
+            //update spawn timer IF SERVER
+            if(peerType != CLIENT){
+                enemyDir.tickUpdate(enemyVector);
             }
-
+            
             //delete out of range enemies
             std::deque<genericEnemy>::iterator it = enemyVector.begin();
             while(it != enemyVector.end())
@@ -216,7 +279,16 @@ int main () {
                     foe.isAlive = false;
                 }
             }
+
+            //transmit player information
+            if(peerType != DEFAULT){
+                std::string playerStr{protag.getSerialisedEntity()};
+                std::string playerHeader{protag.getSerialisedEntityHeader(playerStr.size())};
+                networkHandler.sendMessage(playerHeader, playerStr);
+            }
         }
+
+        
 
         switch(runMode)
         {
@@ -229,17 +301,20 @@ int main () {
                 networkHandler.syncDTClientUDP(io);
                 //reset run mode
                 runMode = 0;
+                peerType = CLIENT;
             }break;
             case 2://Server
             {
                 networkHandler.syncDTServerUDP(io);
                 //reset run mode
                 runMode = 0;
+                peerType = SERVER;
             }break;
             case -1://stop service
             {
                 io.stop();
                 runMode = 0;
+                peerType = DEFAULT;
             }
             default: break;
         }
@@ -722,9 +797,12 @@ void levelChat(std::string& latestMessage, bool& inputSelected, std::string& inp
     {
         if(IsKeyPressed(KEY_ENTER) && !inputString.empty())
         {
-            boost::system::error_code ignored_error;
-            //send text through to the other side
-            networkHandler.socket_.send_to(boost::asio::buffer(inputString), networkHandler.remote_endpoint, 0, ignored_error);
+            //get header
+            std::string textHeader {getSerialisedStrHeader(inputString.size())};
+            networkHandler.sendMessage(textHeader, inputString);
+            // boost::system::error_code ignored_error;
+            // //send text through to the other side
+            // networkHandler.socket_.send_to(boost::asio::buffer(inputString), networkHandler.remote_endpoint, 0, ignored_error);
             //store text into the circular buffer
             chatBuffer.push_back("Me: " + inputString);
             //clear text
