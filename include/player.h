@@ -7,6 +7,9 @@
 #include <cmath>
 #include <thread>
 #include "include/entity.h"
+#include "include/functs.h"
+
+
 
 /**
  * Entity derived class representing the player character(s)
@@ -23,6 +26,13 @@ class projectileAttack: public entity {
 
     //methods
     int moveProjectile();
+
+    //serialisation function
+    template<class Archive> void serialize(Archive & ar, const unsigned int version)
+    {
+        //serialise base class
+        ar & boost::serialization::base_object<entity>(*this);
+    }
 };
 
 class player: public entity {

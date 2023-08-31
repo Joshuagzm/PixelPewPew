@@ -30,7 +30,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/string.hpp>
-
+#include <boost/serialization/deque.hpp>
 
 class platform {
   public:
@@ -46,7 +46,6 @@ int stageWidth{1800};
 const double textMeasureFactor {3.0};
 const uint32_t headerPadSize{10};
 
-
 bool collision;
 networkClass peerType {DEFAULT};
 screen prevState {DUMMY};
@@ -57,6 +56,10 @@ std::deque<entity> platformVector;
 std::deque<projectileAttack> attackVector;
 std::deque<genericEnemy> enemyVector;
 std::deque<entity*> playerVector;
+
+//vectors for external object (multiplayer) - no collision handling (yet)
+std::deque<projectileAttack> extAttackVector;
+std::deque<entity*> extPlayerVector;
 
 
 bool gameReplay {true};

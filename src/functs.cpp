@@ -87,13 +87,13 @@ int cappedAddition(int currentVal, int addVal, int limit){
 }
 
 //function to get the serialised header of a string message
-std::string getSerialisedStrHeader(uint32_t strSize)
+std::string getSerialisedStrHeader(uint32_t strSize, messageType msgType)
 {
     std::stringstream ss;
     boost::archive::text_oarchive oarchive(ss);
     messageHeader strHeader;
     strHeader.bodySize = strSize;
-    strHeader.msgType = M_STR;
+    strHeader.msgType = msgType;
     oarchive << strHeader;
     std::string paddedHeader{padHeader(ss.str())};
     return paddedHeader;

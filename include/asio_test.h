@@ -7,6 +7,7 @@
 #include <mutex>
 #include <ctime>
 #include <string>
+#include <boost/range.hpp>
 
 #include <boost/bind/bind.hpp>
 #include <boost/array.hpp>

@@ -21,6 +21,14 @@ class genericEnemy: public entity
     public:
         int ID;
         int updateMovement(float playerX, float playerY);
+
+
+        //serialisation function
+        template<class Archive> void serialize(Archive & ar, const unsigned int version)
+        {
+            //serialise base class
+            ar & boost::serialization::base_object<entity>(*this);
+        }
 };
 
 //enemy spawning handler

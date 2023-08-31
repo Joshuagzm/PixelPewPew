@@ -21,6 +21,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/string.hpp>
+#include <boost/serialization/deque.hpp>
 
 /**
  * Entity super class
@@ -118,7 +119,7 @@ class entity {
             a & hitbox.height;
         }
         std::string getSerialisedEntity();
-        std::string getSerialisedEntityHeader(uint32_t bodySize);
+        std::string getSerialisedEntityHeader(uint32_t bodySize, messageType msgType);
 };
 
 #endif

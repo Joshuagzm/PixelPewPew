@@ -12,8 +12,10 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/string.hpp>
+#include <boost/serialization/deque.hpp>
 #include <string>
 #include <queue>
+#include <deque>
 
 
 //initialise system variables
@@ -21,6 +23,9 @@ const int screenWidth {800};
 const int screenHeight {600};
 const int targetFPS {60};
 const std::string emptyUUID{"00000000-0000-0000-0000-000000000000"};
+enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, WIN, DEAD, CHAT, NETCONF, DUMMY};
+enum networkClass {DEFAULT, CLIENT, SERVER};
+enum messageType {M_MISC, M_PLAYER, M_STR, M_PROJ, M_ENEMY};
 
 int getRelativeDir(float src, float dst);//gets the direction of incrementation to get from src to dst
 bool checkInBounds(float input, float lower, float upper);//checks if input is within bounds upper and lower (inclusive)
@@ -29,13 +34,27 @@ bool isMouseInRect(Vector2 mousePos, float rectX, float rectY, Vector2 rectDimen
 int cappedAddition(int currentVal, int addVal, int limit);
 int cappedSubtraction(int currentVal, int subtractVal, int limit);
 
-std::string getSerialisedStrHeader(uint32_t strSize);
+
+std::string getSerialisedStrHeader(uint32_t strSize, messageType msgType);
 std::string getBytesFromQueue(std::deque<std::string>& stringQueue, uint32_t bytesToRead);
 std::string padHeader(std::string header);
 
-enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, WIN, DEAD, CHAT, NETCONF, DUMMY};
-enum networkClass {DEFAULT, CLIENT, SERVER};
-enum messageType {M_ENTITY, M_STR, M_MISC};
+
+//general serialisation function
+template <typename T> std::string getSerialisedStr(const T & obj)
+{
+    std::stringstream ss;
+    boost::archive::text_oarchive oarchive(ss);
+    oarchive << obj;
+    return ss.str();
+}
+
+//mutable overload
+template <typename T> std::string getSerialisedStr(T & obj)
+{
+    const T & constObj = obj;
+    return getSerialisedStr(constObj);
+}
 
 class messageHeader
 {

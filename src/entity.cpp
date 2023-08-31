@@ -298,7 +298,7 @@ std::string entity::getSerialisedEntity()
     return ss.str();
 }
 
-std::string entity::getSerialisedEntityHeader(uint32_t bodySize)
+std::string entity::getSerialisedEntityHeader(uint32_t bodySize, messageType msgType)
 {
     //initialise string stream, archive and temp header obj
     std::stringstream ss;
@@ -307,7 +307,7 @@ std::string entity::getSerialisedEntityHeader(uint32_t bodySize)
     //fill header fields
     entHeader.bodySize = bodySize;
     entHeader.headerUUID = boost::uuids::to_string(this->entityID);
-    entHeader.msgType = M_ENTITY;
+    entHeader.msgType = msgType;
     //archive
     oarchive << entHeader;
     //pad header

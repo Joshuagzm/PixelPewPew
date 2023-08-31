@@ -138,35 +138,54 @@ int main () {
                             break;
                         }
 
+                        //if serialised, initialised stream and archive
+                        std::stringstream ss(queueString);
+                        boost::archive::text_iarchive iarchive(ss);
+
                         switch(readMsgType)
                         {
-                            //handle player information
-                            case M_ENTITY:
-                            {
-                                //deserialise into player object
-                                std::stringstream ss(queueString);
-                                boost::archive::text_iarchive iarchive(ss);
-                                player tempPlayer;
-                                iarchive >> p_client;
-                                std::cout<<"Received player from network X: "<<p_client.hitbox.x<<" Y: "<<p_client.hitbox.y<<std::endl;
-                            }break;
-
-                            //handle as plain string
+                            //handle string
                             case M_STR:
                             {
-                            //string handled as-is
-                            chatBuffer.push_back("Received: " + queueString);
+                                std::string recv_msg;
+                                iarchive >> recv_msg;
+                                chatBuffer.push_back("Received: " + recv_msg);
+
+                            }break;
+                            //handle player information
+                            case M_PLAYER:
+                            {
+                                //deserialise into player object
+                                player tempPlayer;
+                                iarchive >> p_client;
+                            }break;
+
+                            case M_PROJ:
+                            {
+                                //Overwrite the existing external projectiles vector
+                                std::deque<projectileAttack> tempAttackVector;
+                                iarchive >> tempAttackVector;
+                                extAttackVector = tempAttackVector;
+                            }break;
+
+                            case M_ENEMY:
+                            {
+                                //overwrite existing enemyvector
+                                std::deque<genericEnemy> tempEnemyVector;
+                                iarchive >> tempEnemyVector;
+                                enemyVector = tempEnemyVector;
+
                             }break;
                             
                             //default case, fallthrough
-                            case M_MISC: break;
+                            default: break;
                         }
                         readingState = 0;
                     }break;
 
                     default:
                     {
-                        std::cerr<<"ERRORING SOMETHING WENT WRONG WITH THE READING"<<std::endl;
+                        std::cerr<<"ERROR SOMETHING WENT WRONG WITH THE READING"<<std::endl;
                     }break;
 
                 }
@@ -183,8 +202,6 @@ int main () {
             //Movement handling
             protag.checkMoveInput();
             protag.checkAttackInput(&attackVector);
-
-            //CLIENT SIM
 
             //UPDATE VALUES//
             protag.moveX();
@@ -280,20 +297,39 @@ int main () {
                 }
             }
 
-            //transmit player information
-            if(peerType != DEFAULT){
+            if(peerType != DEFAULT)
+            {
+                //transmit player information
                 std::string playerStr{protag.getSerialisedEntity()};
-                std::string playerHeader{protag.getSerialisedEntityHeader(playerStr.size())};
+                std::string playerHeader{protag.getSerialisedEntityHeader(playerStr.size(), M_PLAYER)};
                 networkHandler.sendMessage(playerHeader, playerStr);
+
+                //transmit projectile information
+                //TODO: Minimise network load by oneshotting deque if empty, and then resuming if not empty
+                std::string projString{getSerialisedStr(attackVector)};
+                std::string projHeader{getSerialisedStrHeader(projString.size(), M_PROJ)};
+                networkHandler.sendMessage(projHeader, projString);
+
+                if(peerType == SERVER)
+                {
+                    //TODO: Minimise network load by oneshotting deque if empty, and then resuming if not empty
+                    //transmit enemy information
+                    std::string enemyString{getSerialisedStr(enemyVector)};
+                    std::string enemyHeader{getSerialisedStrHeader(enemyString.size(), M_ENEMY)};
+                    networkHandler.sendMessage(enemyHeader, enemyString);
+                }
             }
         }
 
-        
-
         switch(runMode)
         {
-            case 1://Client
+            case 1://Connecting as Client
             {
+                //default IP
+                if(ipAddrStr == ""){
+                    ipAddrStr = "192.168.1.142";
+                    std::cerr << "Empty string given for IP address, falling back to default"<<std::endl;
+                }
                 //convert IP address and port from string to correct type
                 networkHandler.remote_endpoint.address(boost::asio::ip::address::from_string(ipAddrStr));
                 networkHandler.remote_endpoint.port(networkHandler.serverPort);
@@ -303,7 +339,7 @@ int main () {
                 runMode = 0;
                 peerType = CLIENT;
             }break;
-            case 2://Server
+            case 2://Connecting as Server
             {
                 networkHandler.syncDTServerUDP(io);
                 //reset run mode
@@ -431,6 +467,9 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
     //draw projectiles
     for(auto& item: attackVector){
         item.moveProjectile();
+        DrawRectangle(item.hitbox.x,item.hitbox.y,item.hitbox.width,item.hitbox.height,YELLOW);
+    }
+    for(auto& item: extAttackVector){
         DrawRectangle(item.hitbox.x,item.hitbox.y,item.hitbox.width,item.hitbox.height,YELLOW);
     }
 
@@ -797,12 +836,10 @@ void levelChat(std::string& latestMessage, bool& inputSelected, std::string& inp
     {
         if(IsKeyPressed(KEY_ENTER) && !inputString.empty())
         {
-            //get header
-            std::string textHeader {getSerialisedStrHeader(inputString.size())};
-            networkHandler.sendMessage(textHeader, inputString);
-            // boost::system::error_code ignored_error;
-            // //send text through to the other side
-            // networkHandler.socket_.send_to(boost::asio::buffer(inputString), networkHandler.remote_endpoint, 0, ignored_error);
+            //serialise, get header, then send message
+            std::string msg {getSerialisedStr(inputString)};
+            std::string msgHeader {getSerialisedStrHeader(msg.size(), M_STR)};
+            networkHandler.sendMessage(msgHeader, msg);
             //store text into the circular buffer
             chatBuffer.push_back("Me: " + inputString);
             //clear text
