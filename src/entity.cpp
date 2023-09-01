@@ -27,7 +27,6 @@ void entity::killEntity()
     //removes grid occupation
     std::cout<<"DESTROYING ENTITY\n";
     this->isAlive = false;
-    this->removeGridOccupation(this->gridCellsCurrent);
 }
 
 //sets speedY
@@ -313,4 +312,9 @@ std::string entity::getSerialisedEntityHeader(uint32_t bodySize, messageType msg
     //pad header
     std::string paddedHeader{padHeader(ss.str())};
     return paddedHeader;
+}
+
+std::string entity::getIDString()
+{
+    return(boost::uuids::to_string(this->entityID));
 }

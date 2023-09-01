@@ -172,11 +172,57 @@ int main () {
                             {
                                 //overwrite existing enemyvector
                                 std::deque<genericEnemy> tempEnemyVector;
-                                iarchive >> tempEnemyVector;
-                                enemyVector = tempEnemyVector;
+                                iarchive >> enemyVector;
 
                             }break;
                             
+                            //add command - for sending events 
+                            case M_EVENT:
+                            {
+                                //what kind of events would need to be sent
+                                /*
+                                Enemy hit commands
+                                Score update
+                                Death
+                                Screen transitions
+
+                                */
+                              eventMessage tempEvent;
+                              iarchive >> tempEvent;
+                              //read the event type
+                              switch(tempEvent.eType)
+                              {
+                                case E_HIT:
+                                {
+                                    //enemy was hit! find the corresponding enemy based on UUID and unalive is TODO: make this better - restructure as a map?
+                                    for (auto& enemy: enemyVector){
+                                        if(enemy.getIDString() ==  tempEvent.eID){
+                                            enemy.killEntity();
+                                            break;
+                                        }
+                                    }
+
+                                }break;
+
+                                case E_SCORE:
+                                {
+                                    if(peerType == SERVER){
+                                        //add on to kill count
+                                        killCount += tempEvent.eValue;
+                                    }else if(peerType == CLIENT){
+                                        killCount = tempEvent.eValue;
+                                    }
+                                }break;
+
+                                case E_SCREEN:
+                                {
+                                    //screen transition request
+                                    requestState = static_cast<screen>(tempEvent.eValue);
+                                }break;
+                                default: break;
+                              }
+                            }break;
+
                             //default case, fallthrough
                             default: break;
                         }
@@ -196,7 +242,6 @@ int main () {
 
         //Code that should run during gameplay
         if(gamePaused != true){
-            //LOCAL PLAYER CONTROL
             //Initialisations
             protag.initLoop();
             //Movement handling
@@ -232,15 +277,35 @@ int main () {
                         switch(closeEntity->alignment){
                             case entity::MONSTER:
                             {
-                                proj.isAlive = false;
-                                closeEntity->isAlive = false;
+                                proj.killEntity();
+                                closeEntity->killEntity();
                                 killCount += 1;
                                 //indicate exit
                                 exitFlag = true;
+                                //if client, send kill message to the server
+                                if(peerType == CLIENT){
+                                    //form event
+                                    eventMessage killEvent;
+                                    killEvent.eType = E_HIT;
+                                    killEvent.eID = closeEntity->getIDString();
+                                    //serialise and send
+                                    std::string msgBody{getSerialisedStr(killEvent)};
+                                    std::string msgHeader{getSerialisedStrHeader(msgBody.size(), M_EVENT)};
+                                    networkHandler.sendMessage(msgHeader, msgBody);
+
+                                    //form update score event TODO
+                                    eventMessage scoreEvent;
+                                    scoreEvent.eType = E_SCORE;
+                                    scoreEvent.eValue = 1;//score increment value;
+                                    //serialise and send
+                                    msgBody = getSerialisedStr(scoreEvent);
+                                    msgHeader = getSerialisedStrHeader(msgBody.size(), M_EVENT);
+                                    networkHandler.sendMessage(msgHeader, msgBody);
+                                }
                             }break;
                             case entity::OBJECT:
                             {
-                                proj.isAlive = false;
+                                proj.killEntity();
                                 exitFlag = true;
                             }break;
                             default: break; 
@@ -253,35 +318,9 @@ int main () {
                 }
             }
 
-            //update spawn timer IF SERVER
+            //ENEMY DIRECTOR
             if(peerType != CLIENT){
                 enemyDir.tickUpdate(enemyVector);
-            }
-            
-            //delete out of range enemies
-            std::deque<genericEnemy>::iterator it = enemyVector.begin();
-            while(it != enemyVector.end())
-            {
-                if(!it->isAlive)
-                {
-                    it->removeGridOccupation(it->gridCellsCurrent);
-                    it = enemyVector.erase(it);
-                }else{
-                    ++it;
-                }
-            }
-
-            //delete out of range enemies
-            std::deque<projectileAttack>::iterator atkIter = attackVector.begin();
-            while(atkIter != attackVector.end())
-            {
-                if(!atkIter->isAlive)
-                {
-                    atkIter->removeGridOccupation(atkIter->gridCellsCurrent);
-                    atkIter = attackVector.erase(atkIter);
-                }else{
-                    ++atkIter;
-                }
             }
 
             //update enemy position
@@ -293,10 +332,11 @@ int main () {
                 //set the destruction bit
                 if( !foe.checkInTopless(&stageWidth, &stageHeight) )
                 {
-                    foe.isAlive = false;
+                    foe.killEntity();
                 }
             }
-
+            
+            //SEND DATA//
             if(peerType != DEFAULT)
             {
                 //transmit player information
@@ -317,6 +357,40 @@ int main () {
                     std::string enemyString{getSerialisedStr(enemyVector)};
                     std::string enemyHeader{getSerialisedStrHeader(enemyString.size(), M_ENEMY)};
                     networkHandler.sendMessage(enemyHeader, enemyString);
+
+                    //form update score event TODO
+                    eventMessage scoreEvent;
+                    scoreEvent.eType = E_SCORE;
+                    scoreEvent.eValue = killCount;//score increment value;
+                    //serialise and send
+                    std::string msgBody{getSerialisedStr(scoreEvent)};
+                    std::string msgHeader{getSerialisedStrHeader(msgBody.size(), M_EVENT)};
+                    networkHandler.sendMessage(msgHeader, msgBody);
+                }
+            }
+
+            //CLEANUP//
+            std::deque<genericEnemy>::iterator it = enemyVector.begin();
+            while(it != enemyVector.end())
+            {
+                if(!it->isAlive)
+                {
+                    it->removeGridOccupation(it->gridCellsCurrent);
+                    it = enemyVector.erase(it);
+                }else{
+                    ++it;
+                }
+            }
+
+            std::deque<projectileAttack>::iterator atkIter = attackVector.begin();
+            while(atkIter != attackVector.end())
+            {
+                if(!atkIter->isAlive)
+                {
+                    atkIter->removeGridOccupation(atkIter->gridCellsCurrent);
+                    atkIter = attackVector.erase(atkIter);
+                }else{
+                    ++atkIter;
                 }
             }
         }
@@ -782,31 +856,26 @@ void levelChat(std::string& latestMessage, bool& inputSelected, std::string& inp
     ClearBackground(BLACK);
 
     const char * textTitle {"Chat"};
-    const char * textServer {latestMessage.c_str()};
-    const char * textClient {"Connect as client"};
     const char * textReturn {"Return to title"};
+    const char * textStart {"Start!"};
 
     float titleSize {50};
     float optionSize {30};
 
     //Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),mainMenuTitle, static_cast<float>(titleSize), 1)};
     Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),textTitle, static_cast<float>(titleSize), textMeasureFactor)};
-    Vector2 serverDimensions { MeasureTextEx(GetFontDefault(),textServer, static_cast<float>(optionSize), textMeasureFactor)};
-    Vector2 clientDimensions { MeasureTextEx(GetFontDefault(),textClient, static_cast<float>(optionSize), textMeasureFactor)};
+    Vector2 startDimensions { MeasureTextEx(GetFontDefault(),textStart, static_cast<float>(optionSize), textMeasureFactor)};
     Vector2 returnDimensions { MeasureTextEx(GetFontDefault(),textReturn, static_cast<float>(optionSize), textMeasureFactor)};
 
     float titleX {screenWidth/2 - titleDimensions.x/2};
     float titleY {75};
-    float serverX {screenWidth/2 - serverDimensions.x/2}; 
-    float serverY {200};
-    float clientX {screenWidth/2 - clientDimensions.x/2};
-    float clientY {300};
+    float startX {screenWidth/2 - startDimensions.x - 50};
+    float startY {500};
     float returnX {screenWidth - returnDimensions.x - 50};
     float returnY {550};
 
     auto titleColor{WHITE};
-    auto serverColor{WHITE};
-    auto clientColor{WHITE};
+    auto startColor{WHITE};
     auto returnColor{WHITE};
 
     Vector2 mousePos{GetMousePosition()};
@@ -849,21 +918,21 @@ void levelChat(std::string& latestMessage, bool& inputSelected, std::string& inp
 
     
     //check for hover and click events
-    if(isMouseInRect(mousePos, serverX, serverY, serverDimensions)){
-        serverColor = GREEN;
+    if(isMouseInRect(mousePos, startX, startY, startDimensions)){
+        startColor = GREEN;
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            requestState = CHAT;
+            requestState = LEVEL1;
+            //send event
+            eventMessage msg;
+            msg.eValue = LEVEL1;
+            msg.eType = E_SCREEN;
+            //serialise and send
+            std::string sMsg{getSerialisedStr(msg)};
+            std::string sMsgHeader{getSerialisedStrHeader(sMsg.size(), M_EVENT)};
+            networkHandler.sendMessage(sMsgHeader,sMsg);
         }
     }else{
-        serverColor = WHITE;
-    }
-    if(isMouseInRect(mousePos, clientX, clientY, clientDimensions)){
-        clientColor = GREEN;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            requestState = CHAT;
-        }
-    }else{
-        clientColor = WHITE;
+        startColor = WHITE;
     }
     if(isMouseInRect(mousePos, returnX, returnY, returnDimensions)){
         returnColor = GREEN;
@@ -877,6 +946,7 @@ void levelChat(std::string& latestMessage, bool& inputSelected, std::string& inp
     //winCondition
     DrawText(TextFormat(textTitle), titleX, titleY, titleSize, titleColor);
     DrawText(TextFormat(textReturn), returnX, returnY, optionSize, returnColor);
+    DrawText(TextFormat(textStart), startX, startY, optionSize, startColor);
 
     EndDrawing();
     
@@ -928,4 +998,9 @@ void createInputBox(Rectangle inputBox, Color& borderColor, Color& fillColor, Co
     DrawRectangleRec(inputBox, fillColor);
     DrawRectangleLines(inputBox.x, inputBox.y, inputBox.width, inputBox.height, borderColor);
     DrawText(tempString.c_str(), inputBox.x + 10, inputBox.y + 8, textSize, textColor);
+}
+
+void createClickableText()
+{
+
 }

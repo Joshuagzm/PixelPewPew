@@ -28,6 +28,9 @@ class genericEnemy: public entity
         {
             //serialise base class
             ar & boost::serialization::base_object<entity>(*this);
+            ar & isSolid;
+            ar & isTouchDamage;
+            ar & alignment;
         }
 };
 

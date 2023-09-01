@@ -179,11 +179,9 @@ void networkInstance::sendMessage(std::string header, std::string body)
 {
     boost::system::error_code ignored_error;
     std::string msg{header + body};
-    //TODO: handle messages larger than the buffer size
-    if(boost::size(*recv_buf) < boost::size(msg)){
-        std::cout<<"MESSAGE IS TOO LARGE"<<std::endl;
-    }else{
-        this->socket_.send_to(boost::asio::buffer(header + body), this->remote_endpoint, 0, ignored_error);
-    }
-    
+    //send buffers for message
+    for (size_t i = 0; i < msg.size(); i += boost::size(*recv_buf))
+    {
+        this->socket_.send_to(boost::asio::buffer(msg.substr(i,boost::size(*recv_buf))), this->remote_endpoint, 0, ignored_error);
+    }    
 }

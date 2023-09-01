@@ -22,6 +22,7 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/deque.hpp>
+#include <boost/serialization/set.hpp>
 
 /**
  * Entity super class
@@ -117,9 +118,12 @@ class entity {
             a & hitbox.y;
             a & hitbox.width;
             a & hitbox.height;
+            a & isAlive;
+            this->entityID = boost::uuids::string_generator()(strEntityID);
         }
         std::string getSerialisedEntity();
         std::string getSerialisedEntityHeader(uint32_t bodySize, messageType msgType);
+        std::string getIDString();
 };
 
 #endif

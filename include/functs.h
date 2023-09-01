@@ -13,6 +13,7 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/deque.hpp>
+#include <boost/serialization/set.hpp>
 #include <string>
 #include <queue>
 #include <deque>
@@ -24,8 +25,9 @@ const int screenHeight {600};
 const int targetFPS {60};
 const std::string emptyUUID{"00000000-0000-0000-0000-000000000000"};
 enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, WIN, DEAD, CHAT, NETCONF, DUMMY};
+enum eventType {E_HIT, E_DIE, E_SCORE, E_SCREEN, E_MISC};
 enum networkClass {DEFAULT, CLIENT, SERVER};
-enum messageType {M_MISC, M_PLAYER, M_STR, M_PROJ, M_ENEMY};
+enum messageType {M_MISC, M_PLAYER, M_STR, M_PROJ, M_ENEMY, M_EVENT};
 
 int getRelativeDir(float src, float dst);//gets the direction of incrementation to get from src to dst
 bool checkInBounds(float input, float lower, float upper);//checks if input is within bounds upper and lower (inclusive)
@@ -56,6 +58,7 @@ template <typename T> std::string getSerialisedStr(T & obj)
     return getSerialisedStr(constObj);
 }
 
+//padded message header - to be padded with padHeader() after serialisation
 class messageHeader
 {
     public:
@@ -68,6 +71,21 @@ class messageHeader
             a & headerUUID;
             a & bodySize;
             a & msgType;
+        }
+};
+
+//padded event message - to be padded with padHeader() after serialisation
+class eventMessage
+{
+    public:
+        eventType eType{E_MISC};
+        std::string eID{emptyUUID};
+        uint32_t eValue{0};
+
+        template <class Archive> void serialize(Archive &a, const unsigned version){
+            a & eType;
+            a & eID;
+            a & eValue;
         }
 };
 
