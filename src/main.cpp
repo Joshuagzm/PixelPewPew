@@ -688,70 +688,56 @@ void levelMainMenu(){
     //draw
     BeginDrawing();
     ClearBackground(BLACK);
+    Vector2 mousePos{GetMousePosition()};
 
-    const char * mainMenuTitle {"Pixel Pew Pew"};
-    const char * mainMenuStart {"Start!"};
-    const char * mainMenuQuit {"Quit"};
-    const char * mainMenuNetwork {"Network Configuration"};
-
+    //set text sizes
     float titleSize {75};
     float optionSize {30};
 
-    float titleX {50};
-    float titleY {75};
-    float startX {50}; 
-    float startY {400};
-    float quitX {50};
-    float quitY {450};
-    float networkX {50};
-    float networkY {500};
+    gameText titleText("Pixel Pew Pew", titleSize);
+    gameText startText("Start!", optionSize);
+    gameText quitText("Quit", optionSize);
+    gameText networkText("Network Configuration", optionSize);
 
-    auto titleColor{WHITE};
-    auto startColor{WHITE};
-    auto quitColor{WHITE};
-    auto networkColor{WHITE};
+    //set positions
+    titleText.position.x   = 50;
+    titleText.position.y   = 75;
+    startText.position.x   = 50; 
+    startText.position.y   = 400;
+    quitText.position.x    = 50;
+    quitText.position.y    = 450;
+    networkText.position.x = 50;
+    networkText.position.y = 500;
 
-    //Vector2 titleDimensions { MeasureTextEx(GetFontDefault(),mainMenuTitle, static_cast<float>(titleSize), 1)};
-    Vector2 startOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuStart, static_cast<float>(optionSize), textMeasureFactor)};
-    Vector2 quitOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuQuit, static_cast<float>(optionSize), textMeasureFactor)};
-    Vector2 networkOptionDimensions { MeasureTextEx(GetFontDefault(),mainMenuNetwork, static_cast<float>(optionSize), textMeasureFactor)};
+    //set hover actions
+    startText.colorOnHover(mousePos);
+    quitText.colorOnHover(mousePos);
+    networkText.colorOnHover(mousePos);
 
-    Vector2 mousePos{GetMousePosition()};
-
-    //check for hover and click events
-    if(isMouseInRect(mousePos, startX, startY, startOptionDimensions)){
-        startColor = GREEN;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            requestState = LEVEL1;
-        }
-    }else{
-        startColor = WHITE;
-    }
-    if(isMouseInRect(mousePos, quitX, quitY, quitOptionDimensions)){
-        quitColor = GREEN;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            requestState = EXITGAME;
-        }
-    }else{
-        quitColor = WHITE;
-    }
-    if(isMouseInRect(mousePos, networkX, networkY, networkOptionDimensions)){
-        networkColor = GREEN;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            requestState = NETCONF;
-        }
-    }else{
-        networkColor = WHITE;
+    //set click actions
+    if(startText.isClickedOn(mousePos))
+    {
+        requestState = LEVEL1;
     }
 
-    //winCondition
-    DrawText(TextFormat(mainMenuTitle), titleX, titleY, titleSize, titleColor);
-    DrawText(TextFormat(mainMenuStart), startX, startY, optionSize, startColor);
-    DrawText(TextFormat(mainMenuQuit), quitX, quitY, optionSize, quitColor);
-    DrawText(TextFormat(mainMenuNetwork), networkX, networkY, optionSize, networkColor);
+    if(quitText.isClickedOn(mousePos))
+    {
+        requestState = EXITGAME;
+    }
+
+    if(networkText.isClickedOn(mousePos))
+    {
+        requestState = NETCONF;
+
+    }
+
+    //draw text
+    titleText.drawToScreen();
+    startText.drawToScreen();
+    quitText.drawToScreen();
+    networkText.drawToScreen();
 
     EndDrawing();
-    
 }
 
 void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected){

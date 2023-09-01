@@ -21,6 +21,7 @@
 #include "include/functs.h"
 #include "include/grid.h"
 #include "include/stage.h"
+#include "include/text.h"
 #include <queue>
 #include <mutex>
 #include <string>
