@@ -489,19 +489,21 @@ void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width,
     int borderX = screenWidth/2 - 50;  //Border on the X extremeties
     int borderY = screenHeight/2 - 50;  //Border on the Y extremeties
 
+    //get bounding box in world axis
     Vector2 bboxTopLeft = GetScreenToWorld2D((Vector2) {static_cast<float>(borderX), static_cast<float>(borderY)}, *camera);
     Vector2 bboxBottomRight = GetScreenToWorld2D((Vector2) {static_cast<float>(screenWidth - borderX), static_cast<float> (screenHeight - borderY)}, *camera);
 
+    //set camera focus
     if(protag->hitbox.x < bboxTopLeft.x){       camera->target.x += protag->hitbox.x - bboxTopLeft.x;}
     if(protag->hitbox.y < bboxTopLeft.y){       camera->target.y += protag->hitbox.y - bboxTopLeft.y;}
     if(protag->hitbox.x > bboxBottomRight.x){   camera->target.x += protag->hitbox.x - bboxBottomRight.x;}
     if(protag->hitbox.y > bboxBottomRight.y){   camera->target.y += protag->hitbox.y - bboxBottomRight.y;}
 
+    //for non wiggle room
     // camera->target.x = protag->hitbox.x;
     // camera->target.y = protag->hitbox.y;
 
-    //clamps to the screen edges
-    //get the world edges in the screen space and clamps
+    //set offset to clamp to the world edge
     Vector2 camTopLeft =       GetWorldToScreen2D((Vector2){0,0}, *camera);
     Vector2 camBottomRight =   GetWorldToScreen2D((Vector2){static_cast<float>(stageWidth),static_cast<float>(stageHeight)}, *camera);
     if(camTopLeft.x > 0){          camera->offset.x = (camera->offset.x - camTopLeft.x);              }
@@ -511,7 +513,7 @@ void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width,
 }
 
 void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
-    //on transition
+    //SCREEN ENTRY
     if(prevState != gameState){
         stageWidth = 2*screenHeight;
         stageHeight = screenHeight;
@@ -557,6 +559,7 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
         DrawRectangle(foe.hitbox.x,foe.hitbox.y,foe.hitbox.width,foe.hitbox.height,RED);
     }
 
+    //draw players
     for(const auto& player: playerVector){
         DrawRectangle(player->hitbox.x, player->hitbox.y, player->hitbox.width, player->hitbox.height, player->entColor);
     }
@@ -568,7 +571,6 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
     DrawText(TextFormat("Health: %02i/%02i", protag->hp, protag->maxHp), screenWidth - 150, 20, 20, WHITE);
 
     EndDrawing();
-
     //check win condition
     if(*killCount >= *winCount){
         requestState = WIN;
@@ -586,43 +588,31 @@ void levelWin(){
     //draw
     BeginDrawing();
     ClearBackground(BLACK);
-
-    const char* winMessage {"Victory!"};
-
-    //getting size and position of message, should be centered in the top third
-    float messasgeSize {50};
-    float promptSize {20};
+    Vector2 mousePos{GetMousePosition()};
     
-    //text definitions
-    const char * promptMessage = "return to menu";
+    float messageSize {50};
+    float promptSize {20};
 
-    Vector2 messasgeDimensions { MeasureTextEx(GetFontDefault(),winMessage, static_cast<float>(messasgeSize), textMeasureFactor)};
-    Vector2 promptDimensions { MeasureTextEx(GetFontDefault(),promptMessage, static_cast<float>(promptSize), textMeasureFactor)};
+    gameText titleText("Victory!", messageSize);
+    gameText promptText("return to menu", promptSize);
 
     //determine the position 
-    float messasgeX {screenWidth/2 - messasgeDimensions.x/2};
-    float messasgeY {screenHeight/3};
-    float promptX   {screenWidth/2 - promptDimensions.x/2};
-    float promptY   {screenHeight - 100};
+    titleText.position.x = screenWidth/2 - titleText.dimensions.x/2;
+    titleText.position.y = screenHeight/3;
+    promptText.setCenterX();
+    promptText.position.y = screenHeight - 100;
 
-    auto messasgeColor{GREEN};
-    auto promptColor{WHITE};
+    titleText.textColor = GREEN;
 
-    Vector2 mousePos{GetMousePosition()};
-
-    //check for hover and click events
-    if(isMouseInRect(mousePos, promptX, promptY, promptDimensions)){
-        promptColor = GREEN;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            requestState = TITLE;
-        }
-    }else{
-        promptColor = WHITE;
+    promptText.colorOnHover(mousePos);
+    if(promptText.isClickedOn(mousePos))
+    {
+        requestState = TITLE;
     }
 
     //winCondition
-    DrawText(TextFormat(winMessage), messasgeX, messasgeY, messasgeSize, messasgeColor);
-    DrawText(TextFormat(promptMessage), promptX, promptY, promptSize, promptColor);
+    titleText.drawToScreen();
+    promptText.drawToScreen();
 
     EndDrawing();
 }
@@ -633,52 +623,43 @@ void levelDead(){
     //draw
     BeginDrawing();
     ClearBackground(BLACK);
+    Vector2 mousePos{GetMousePosition()};
 
+    //utilise a vector to convert random number to index for message generation
     std::vector<const char *> deathMessages;
     deathMessages.push_back("Sucks to suck.");
     deathMessages.push_back("You died.");
     deathMessages.push_back("Weak. Noob.");
     deathMessages.push_back("Maybe you should sleep.");
 
-    //getting size and position of message, should be centered in the top third
-    float messasgeSize {20};
-    float promptSize {20};
-
+    //on screen transition, randomise death message
     if(prevState != gameState){
         randMsgIndex = rand() % deathMessages.size();
     }
+
+    //getting size and position of message, should be centered in the top third
+    float messageSize {20};
+    float promptSize {20};
+
+    gameText deathText(deathMessages.at(randMsgIndex), messageSize);
+    gameText promptText("return to menu", promptSize);
     
-    //text definitions
-    const char * deathMessage = deathMessages.at(randMsgIndex);
-    const char * promptMessage = "return to menu";
-
-    Vector2 messasgeDimensions { MeasureTextEx(GetFontDefault(),deathMessage, static_cast<float>(messasgeSize), textMeasureFactor)};
-    Vector2 promptDimensions { MeasureTextEx(GetFontDefault(),promptMessage, static_cast<float>(promptSize), textMeasureFactor)};
-
     //determine the position 
-    float messasgeX {screenWidth/2 - messasgeDimensions.x/2};
-    float messasgeY {screenHeight/3};
-    float promptX   {screenWidth/2 - promptDimensions.x/2};
-    float promptY   {screenHeight - 100};
+    deathText.setCenterX();
+    deathText.position.y  = screenHeight/3;
+    promptText.setCenterX();
+    promptText.position.y = screenHeight - 100;
 
-    auto messasgeColor{RED};
-    auto promptColor{WHITE};
+    deathText.textColor = RED;
 
-    Vector2 mousePos{GetMousePosition()};
-
-    //check for hover and click events
-    if(isMouseInRect(mousePos, promptX, promptY, promptDimensions)){
-        promptColor = GREEN;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
-            requestState = TITLE;
-        }
-    }else{
-        promptColor = WHITE;
+    promptText.colorOnHover(mousePos);
+    if(promptText.isClickedOn(mousePos))
+    {
+        requestState = TITLE;
     }
 
-    //winCondition
-    DrawText(TextFormat(deathMessage), messasgeX, messasgeY, messasgeSize, messasgeColor);
-    DrawText(TextFormat(promptMessage), promptX, promptY, promptSize, promptColor);
+    deathText.drawToScreen();
+    promptText.drawToScreen();
 
     EndDrawing();
 }

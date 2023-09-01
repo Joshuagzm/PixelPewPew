@@ -4,7 +4,7 @@
 //BUGS TO FIX:
 /*
  - WEIRD STICKING TO CORNERS OF PLATFORMS
- - Not proper clearing of entities after screen change
+ - Not proper clearing of entities or entity properites after screen change
 
 
 */

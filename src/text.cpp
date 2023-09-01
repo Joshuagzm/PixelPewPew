@@ -39,6 +39,7 @@ void gameText::setCenterY(int yTop, int yBottom)
     position.y = yTop + (yTop - yBottom)/2 - dimensions.y/2;
 }
 
+//changes color on hover from baseTextColor to altTextColor
 void gameText::colorOnHover(Vector2 mousePos)
 {
     if(isHoveredOver(mousePos)){
@@ -46,4 +47,16 @@ void gameText::colorOnHover(Vector2 mousePos)
     }else{
         textColor = baseTextColor;
     }
+}
+
+//sets the x position of the text to be centered between two points
+void gameText::setCenterX()
+{
+    position.x = screenWidth/2 - dimensions.x/2;
+}
+
+//sets the y position of the text to be centered between two points
+void gameText::setCenterY()
+{
+    position.y = screenHeight/2 - dimensions.y/2;
 }

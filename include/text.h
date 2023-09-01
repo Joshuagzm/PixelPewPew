@@ -26,6 +26,8 @@ class gameText
         void drawToScreen();
         void setCenterX(int xLeft, int xRight);
         void setCenterY(int yTop, int yBottom);
+        void setCenterX();
+        void setCenterY();
 };
 
 #endif
