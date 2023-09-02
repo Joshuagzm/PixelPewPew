@@ -93,6 +93,8 @@ int main () {
 
     //GAME LOOP
     while (WindowShouldClose() == false && gameExitConfirmed == false){
+        //INCREMENT TICK COUNT
+        tickCounter++;
         //COMMON
         //while looping, check the received data queue
         std::unique_lock<std::mutex> lock(queueMutex);
@@ -249,7 +251,7 @@ int main () {
             protag.checkAttackInput(&attackVector);
 
             //UPDATE VALUES//
-            protag.moveX();
+            protag.moveX(tickCounter);
             protag.moveY();
             protag.screenBorder(stageHeight, stageWidth);
 
@@ -637,28 +639,23 @@ void levelDead(){
         randMsgIndex = rand() % deathMessages.size();
     }
 
-    //getting size and position of message, should be centered in the top third
+    //configure and draw text
     float messageSize {20};
-    float promptSize {20};
-
     gameText deathText(deathMessages.at(randMsgIndex), messageSize);
-    gameText promptText("return to menu", promptSize);
-    
-    //determine the position 
     deathText.setCenterX();
     deathText.position.y  = screenHeight/3;
+    deathText.textColor = RED;
+    deathText.drawToScreen();
+
+    float promptSize {20};
+    gameText promptText("return to menu", promptSize);
     promptText.setCenterX();
     promptText.position.y = screenHeight - 100;
-
-    deathText.textColor = RED;
-
     promptText.colorOnHover(mousePos);
     if(promptText.isClickedOn(mousePos))
     {
         requestState = TITLE;
     }
-
-    deathText.drawToScreen();
     promptText.drawToScreen();
 
     EndDrawing();
@@ -787,7 +784,7 @@ void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected){
 
     const char * textWarning {"WIP - Game will freeze while connecting, this is expected."};
     Vector2 warningDimensions { MeasureTextEx(GetFontDefault(),textWarning, static_cast<float>(inputSize), textMeasureFactor)};
-    DrawText(TextFormat(textWarning), screenWidth/2 - warningDimensions.x/2, 560, inputSize, RED);
+    DrawText(TextFormat(textWarning), screenWidth/2 - warningDimensions.x/2 + 10, 560, inputSize, RED);
 
     //Display Connecting status
     std::string textConnecting;
@@ -809,6 +806,16 @@ void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected){
         Vector2 connectingDimensions { MeasureTextEx(GetFontDefault(),textConnecting.c_str(), static_cast<float>(optionSize), textMeasureFactor)};
         DrawText(TextFormat(textConnecting.c_str()), screenWidth/2 - connectingDimensions.x/2, 500, optionSize, YELLOW);
     }
+
+    gameText promptText("return to menu", optionSize);
+    promptText.position.x = screenWidth - promptText.dimensions.x - 50;
+    promptText.position.y = screenHeight - 100;
+    promptText.colorOnHover(mousePos);
+    if(promptText.isClickedOn(mousePos))
+    {
+        requestState = TITLE;
+    }
+    promptText.drawToScreen();
 
     EndDrawing();
     
@@ -965,9 +972,4 @@ void createInputBox(Rectangle inputBox, Color& borderColor, Color& fillColor, Co
     DrawRectangleRec(inputBox, fillColor);
     DrawRectangleLines(inputBox.x, inputBox.y, inputBox.width, inputBox.height, borderColor);
     DrawText(tempString.c_str(), inputBox.x + 10, inputBox.y + 8, textSize, textColor);
-}
-
-void createClickableText()
-{
-
 }

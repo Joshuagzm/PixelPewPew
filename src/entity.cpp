@@ -130,21 +130,20 @@ int entity::collisionHandler(entity * obj){
                 default:
                     std::cout<<"COLLISION ORDER FAILED"<<std::endl;
             }
+        //Touch Damage
         }if (obj->isTouchDamage){
-            //recoil direction
-            //hit on the right, recoil left
-            //take damage
             if(!this->isInvulnerable){
                 --this->hp;
                 this->invulnerableTimer = targetFPS*1.5;
                 this->isInvulnerable = true;
-                
-            if(obj->hitbox.x + obj->halfWidth > this->hitbox.x + this->halfWidth){
-                this->inertiaX -= 10;
-            }else{
-                this->inertiaX += 10;
-            }
-            this->inertiaY -= 6;
+                //calculate the direction of recoil
+                if(obj->hitbox.x + obj->halfWidth > this->hitbox.x + this->halfWidth){
+                    this->inertiaX -= 10;
+                }else{
+                    this->inertiaX += 10;
+                }
+                //always recoil upwards
+                this->inertiaY -= 12;
             }
         }
         entity_collision = CheckCollisionRecs(obj->hitbox, this->hitbox);

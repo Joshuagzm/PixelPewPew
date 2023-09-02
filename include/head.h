@@ -41,6 +41,7 @@ class platform {
       int posY;
 };
 
+int tickCounter {0};
 int randMsgIndex {0};
 int stageHeight{600};
 int stageWidth{1800};
@@ -61,7 +62,6 @@ std::deque<entity*> playerVector;
 //vectors for external object (multiplayer) - no collision handling (yet)
 std::deque<projectileAttack> extAttackVector;
 std::deque<entity*> extPlayerVector;
-
 
 bool gameReplay {true};
 bool gamePaused {true};

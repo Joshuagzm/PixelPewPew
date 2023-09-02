@@ -40,6 +40,7 @@ using pairSetType = std::set<std::pair<int,int>, decltype(comparePairs)*>;
 class entity {
     protected:
         boost::uuids::uuid entityID {};
+        int inertiaDecayRate {2};    //how often to decay inertia(every X ticks)
 
     public:
         entity();
@@ -61,11 +62,15 @@ class entity {
         bool isAlive = true;    //when false, delete the object
         int jumpMax {1};        //max jumps
         int jumpStock {0};      //jumps available
+        int accelerationX{1};   //max speed increase per tick (linear acceleration)
+        int accelerationRateX{2}; //apply acceleration ever X ticks
+        int throttledSpeedX{0}; //"actual" move speed dampened by acceleration
         int speedX {0};         //internal movement speed in x direction
         int speedY {0};         //internal movement speed in y direction
         int inertiaX {0};       //externally caused decaying movement speed in x direction
         int inertiaY {0};       //externally caused decaying movement speed in y direction
         int inertiaDecay {1};   //inertia decay
+        int inertiaDecayTick {0};    //tick counter for inertia decay 
         int baseSpeed {5};      //internal base movement speed
         bool yLock {false};     //locks y movement
         bool xLock {false};     //locks x movemnet

@@ -2,9 +2,12 @@
 
 int player::initLoop()
 {
+    //store previous location
     this->prevX = this->hitbox.x;
     this->prevY = this->hitbox.y;
+
     this->abilityCooldown -= 1;
+    
     if(this->invulnerableTimer > 0){
         --this->invulnerableTimer; 
         this->isInvulnerable = true;
@@ -14,15 +17,24 @@ int player::initLoop()
         this->entColor = WHITE;
     }
 
-    if(this->inertiaX > 0){
-        this->inertiaX = cappedSubtraction(this->inertiaX, this->inertiaDecay, 0); //decay inertia towards 0
-    }else if (this->inertiaX < 0){
-        this->inertiaX = cappedAddition(this->inertiaX, this->inertiaDecay, 0); //decay inertia towardsd 0
-    }
-    if(this->inertiaY > 0){
-        this->inertiaY = cappedSubtraction(this->inertiaY, this->inertiaDecay, 0); //decay inertia towards 0
-    }else if (this->inertiaY < 0){
-        this->inertiaY = cappedAddition(this->inertiaY, this->inertiaDecay, 0); //decay inertia towardsd 0
+    //tick counter
+    inertiaDecayTick++;
+
+    //slow down decay
+    if(inertiaDecayTick >= inertiaDecayRate){
+        //inertia decay
+        if(this->inertiaX > 0){
+            this->inertiaX = cappedSubtraction(this->inertiaX, this->inertiaDecay, 0); //decay inertia towards 0
+        }else if (this->inertiaX < 0){
+            this->inertiaX = cappedAddition(this->inertiaX, this->inertiaDecay, 0); //decay inertia towardsd 0
+        }
+        if(this->inertiaY > 0){
+            this->inertiaY = cappedSubtraction(this->inertiaY, this->inertiaDecay, 0); //decay inertia towards 0
+        }else if (this->inertiaY < 0){
+            this->inertiaY = cappedAddition(this->inertiaY, this->inertiaDecay, 0); //decay inertia towardsd 0
+        }
+        //reset tick counter
+        inertiaDecayTick = 0;
     }
 
     return(0);
@@ -80,16 +92,29 @@ int player::checkAttackInput(std::deque<projectileAttack>* attackVector){
 }
 
 //apply speedX
-int player::moveX(){
-    //TODO: Add acceleration?
-    this->hitbox.x += this->speedX + this->inertiaX;
+int player::moveX(int tickCounter){
+    //Add acceleration to speedX
+    /*
+    limit speed increase due to speedX to accelerationX per tick
+    if speedX > 0, then the abs throttled speed increases by accelerationX to a max abs value of speedX
+    if speedX == 0, then the player is stopped, and throttledspeed reduces to 0
+    */
+    if(abs(speedX) > 0){
+        if(tickCounter % accelerationRateX == 0){
+            throttledSpeedX = cappedAddition(abs(throttledSpeedX), accelerationX, abs(speedX));
+            throttledSpeedX = abs(throttledSpeedX)*faceDirectionX;
+        }        
+    }else{
+        throttledSpeedX = 0;
+    }
+    hitbox.x += throttledSpeedX + inertiaX;
     return 0;
 }
 
 //apply speedY
 int player::moveY(){
-    this->applyGravity(this->gravity);
-    this->hitbox.y += this->speedY + this->inertiaY;
+    applyGravity(gravity);
+    hitbox.y += speedY + inertiaY;
     return 0;
 }
 

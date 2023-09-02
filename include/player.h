@@ -47,7 +47,7 @@ class player: public entity {
     //class methods
     int checkMoveInput(); //checks user inputs
     int checkAttackInput(std::deque<projectileAttack>* attackVector);
-    int moveX();
+    int moveX(int tickCounter);
     int moveY();
     int screenBorder(int screenHeight, int screenWidth);//prevents movement outside of the screen
     int initLoop();//initialises values at beginning of loop
