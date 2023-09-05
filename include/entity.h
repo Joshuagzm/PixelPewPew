@@ -59,7 +59,8 @@ class entity {
         int faceDirectionY {0};                 //integer to indicate facing direction in the Y direction (unused maybe)
 
         //movement and status
-        bool isAlive = true;    //when false, delete the object
+        bool isAlive{true};     //when false, delete the object
+        bool isGrounded{false}; //is entity on the ground
         int jumpMax {1};        //max jumps
         int jumpStock {0};      //jumps available
         int accelerationX{1};   //max speed increase per tick (linear acceleration)

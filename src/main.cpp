@@ -1,7 +1,5 @@
 #include "include/head.h"
 
-
-
 //update camera module declaration
 void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width, int height);
 ////

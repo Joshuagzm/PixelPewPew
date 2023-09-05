@@ -72,6 +72,8 @@ int entity::collisionHandler(entity * obj){
     bool didCollide = false;
     bool entity_collision = CheckCollisionRecs(obj->hitbox, this->hitbox);
     int dir = 1;
+    // passY = false;
+    // passX = false;
     //if there is, move the hitbox back towards the previous position
 
     while(entity_collision)
@@ -104,28 +106,55 @@ int entity::collisionHandler(entity * obj){
                         collisionInt = 0;
                     }
                     break;
-
             }
-            
+
+            //corrected coords
+            int newY{0};
+            int newX{0};
 
             switch(collisionInt)
             {
                 //resolve y axis
                 case(0):
-                    this->hitbox.y > this->prevY ? dir = -1 : dir = 1;
-                    this->hitbox.y = this->hitbox.y + (boxCollision.height)*dir ;
-                    // this->yLock = true;
-                    this->speedY = 0;
-                    if(this->jumpStock < this->jumpMax) this->jumpStock = this->jumpMax;
-                    break;
+                {
+                    hitbox.y > prevY ? dir = -1 : dir = 1;
+                    newY = hitbox.y + (boxCollision.height)*dir;
+                    //old
+                    hitbox.y = newY;
+                    speedY = 0;
+                    isGrounded = true;
+                    jumpStock = jumpMax;
+                    
 
-                //resolve x axis
+                    // //check if newY is still within the other object
+                    // if(!checkInBounds(static_cast<float>(newY) + dir, obj->hitbox.y, obj->hitbox.y+obj->hitbox.height) &&
+                    //    !checkInBounds(static_cast<float>(newY) + hitbox.height + dir, obj->hitbox.y, obj->hitbox.y+obj->hitbox.height))
+                    // {
+                    //     //valid collision detected, correct position and set speed to 0;
+                    //     hitbox.y = newY;
+                    //     speedY = 0;
+                    //     //check for landing on solid ground
+                    //     if(hitbox.y + hitbox.height == obj->hitbox.y + 1 && obj->isSolid){
+                    //         isGrounded = true;
+                    //         jumpStock = jumpMax;
+                    //     }else{
+                    //         isGrounded = false;
+                    //     }
+                    // }else{
+                    //     passY = true;
+                    //     std::cout<<"STILL FALLING\n";
+                    // }
+                }break;
+
+                //resolve x axis 
                 case(1):
-                    this->hitbox.x > this->prevX ? dir = -1 : dir = 1;                
-                    this->hitbox.x = this->hitbox.x + (boxCollision.width+2)*dir;
-                    this->xLock = true;
-                    this->speedX = 0;
-                    break;
+                {
+                    hitbox.x > prevX ? dir = -1 : dir = 1;                
+                    newX = hitbox.x + (boxCollision.width+2)*dir;
+                    hitbox.x = newX;
+                    xLock = true;
+                    speedX = 0;
+                }break;
 
                 default:
                     std::cout<<"COLLISION ORDER FAILED"<<std::endl;
@@ -146,6 +175,7 @@ int entity::collisionHandler(entity * obj){
                 this->inertiaY -= 12;
             }
         }
+        //check if collision is remaining, if not, then automatically pass
         entity_collision = CheckCollisionRecs(obj->hitbox, this->hitbox);
         //queue operations: X movement and Y movement
         //execute smallest operation first
@@ -270,6 +300,7 @@ int entity::addGridOccupation(pairSetType cellsToAdd){
 
 std::vector<entity *> entity::checkCloseEntities()
 {
+    isGrounded = false;
     std::vector<entity *> closeEntities;
     //check grid cells for entities that are NOT self
     for (const auto& cell : gridCellsCurrent){//for each of the cells that are currently occupied

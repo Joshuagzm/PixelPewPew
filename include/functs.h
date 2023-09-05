@@ -30,11 +30,39 @@ enum networkClass {DEFAULT, CLIENT, SERVER};
 enum messageType {M_MISC, M_PLAYER, M_STR, M_PROJ, M_ENEMY, M_EVENT};
 
 int getRelativeDir(float src, float dst);//gets the direction of incrementation to get from src to dst
-bool checkInBounds(float input, float lower, float upper);//checks if input is within bounds upper and lower (inclusive)
 std::vector<std::pair<int,int>> pairInterpolator(std::pair<int,int> in1, std::pair<int,int> in2);
 bool isMouseInRect(Vector2 mousePos, float rectX, float rectY, Vector2 rectDimensions);
-int cappedAddition(int currentVal, int addVal, int limit);
-int cappedSubtraction(int currentVal, int subtractVal, int limit);
+
+//checks if input is within bounds upper and lower (inclusive)
+template <typename T> bool checkInBounds(T input, T lower, T upper)
+{
+    if(input > upper){
+        return false;
+    }
+    if(input < lower){
+        return false;   
+    }
+    return true;
+}
+
+//substraction operator but with a defined limit
+template <typename T> T cappedSubtraction(T currentVal, T subtractVal, T limit){
+    if(currentVal - subtractVal < limit){
+        return limit;
+    }else{
+        return currentVal - subtractVal;
+    }
+}
+
+//addition operator but with a defined limit
+template <typename T> T cappedAddition(T currentVal, T addVal, T limit){
+    if(currentVal + addVal > limit){
+        return limit;
+    }else{
+        return currentVal + addVal;
+    }
+}
+
 
 
 std::string getSerialisedStrHeader(uint32_t strSize, messageType msgType);

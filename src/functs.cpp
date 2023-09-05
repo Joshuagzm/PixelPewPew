@@ -10,17 +10,6 @@ int getRelativeDir(float src, float dst)
     }
 }
 
-bool checkInBounds(float input, float lower, float upper)
-{
-    if(input > upper){
-        return false;
-    }
-    if(input < lower){
-        return false;   
-    }
-    return true;
-}
-
 std::vector<std::pair<int,int>> pairInterpolator(std::pair<int,int> in1, std::pair<int,int> in2)
 {
     //find direction of traversal
@@ -68,22 +57,6 @@ bool isMouseInRect(Vector2 mousePos, float rectX, float rectY, Vector2 rectDimen
     return false;
 
     
-}
-
-int cappedSubtraction(int currentVal, int subtractVal, int limit){
-    if(currentVal - subtractVal < limit){
-        return limit;
-    }else{
-        return currentVal - subtractVal;
-    }
-}
-
-int cappedAddition(int currentVal, int addVal, int limit){
-    if(currentVal + addVal > limit){
-        return limit;
-    }else{
-        return currentVal + addVal;
-    }
 }
 
 //function to get the serialised header of a string message
