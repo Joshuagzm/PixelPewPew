@@ -1,12 +1,15 @@
 # PixelPewPew - A hobby project WIP
 
-A simple platformer developed in C++ with the Raylib library.
+A simple platformer developed in C++. Graphics and drawing done using the Raylib library, and networking done using the ASIO library. 
 
 Features include simple gameplay and networked multiplayer.
 
 Controls: 
+
 Movements - [left, right]
+
 Jump - [space]
+
 Attack - [z]
 
 Multiplayer guide:
