@@ -1,26 +1,27 @@
-# Raylib C++ Starter Template
+# PixelPewPew - A hobby project WIP
 
-Raylib C++ Starter Template for Visual Studio Code on Windows.
+A simple platformer developed in C++. Graphics and drawing done using the Raylib library, and networking done using the ASIO library. 
 
-This demo project contains a bouncing ball raylib example program.
+Features include simple gameplay and networked multiplayer.
+
+Controls: 
+
+Movements - [left, right]
+
+Jump - [space]
+
+Attack - [z]
+
+Multiplayer guide:
+ - Access the network configuration page through the main menu.
+ - Server instance begin hosting by selecting "Connect as Server".
+ - Client instance connect by inputting the IP address of the host and selecting "Connect as Client".
+ - The next window will allow for chatting between players and a transition to the gameplay screen.
 
 It works with raylib version 4.5.
-Tested on both Windows 10 and Windows 11.
-
-# Video Tutorial
-
-<p align="center">
-  <img src="preview.jpg" alt="" width="800">
-</p>
-
-<p align="center">
-🎥 <a href="https://www.youtube.com/watch?v=PaAcVk5jUd8">Video Tutorial on YouTube</a>
-</p>
+Tested on Windows 10
 
 <br>
 <br>
-<p align="center">
-| 📺 <a href="https://www.youtube.com/channel/UC3ivOTE5EgpmF2DHLBmWIWg">My YouTube Channel</a>
-| 🌍 <a href="http://www.educ8s.tv">My Website</a> | <br>
-</p>
+
 
