@@ -408,17 +408,32 @@ int main () {
                 networkHandler.remote_endpoint.address(boost::asio::ip::address::from_string(ipAddrStr));
                 networkHandler.remote_endpoint.port(networkHandler.serverPort);
                 //connect to server as client
-                networkHandler.syncDTClientUDP(io);
+                if(networkHandler.syncDTClientUDP(io) != 0)
+                {
+                    //connection failed
+                    peerType = DEFAULT;
+                    requestState = NETCONF;
+                }else{
+                    peerType = CLIENT;
+                    requestState = CHAT;
+                }
                 //reset run mode
                 runMode = 0;
-                peerType = CLIENT;
             }break;
             case 2://Connecting as Server
             {
-                networkHandler.syncDTServerUDP(io);
+                if(networkHandler.syncDTServerUDP(io) != 0)
+                {
+                    //connection failed
+                    peerType = DEFAULT;
+                    requestState = NETCONF;
+                }else{
+                    peerType = SERVER;
+                    requestState = CHAT;
+                }
+                
                 //reset run mode
                 runMode = 0;
-                peerType = SERVER;
             }break;
             case -1://stop service
             {
@@ -761,7 +776,6 @@ void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected){
         serverColor = GREEN;
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
             runMode = 2;
-            requestState = CHAT;
         }
     }else{
         serverColor = WHITE;
@@ -770,7 +784,6 @@ void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected){
         clientColor = GREEN;
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
             runMode = 1;
-            requestState = CHAT;
         }
     }else{
         clientColor = WHITE;

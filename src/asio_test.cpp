@@ -54,8 +54,9 @@ int asio_timer_test()
 }
 
 //synchronous UDP daytime server
-void networkInstance::syncDTServerUDP(boost::asio::io_context& dt_io)
+int networkInstance::syncDTServerUDP(boost::asio::io_context& dt_io)
 {
+    //todo: convert to asynchronous and timeout
     using boost::asio::ip::udp;
     try
     {
@@ -65,9 +66,8 @@ void networkInstance::syncDTServerUDP(boost::asio::io_context& dt_io)
         socket_.bind(localEndpoint);
 
         std::cout<<"Waiting for client connection..."<<std::endl;
-        //wait for connection
-        socket_.receive_from(//receive first handshake and client contact information
-                boost::asio::buffer(*recv_buf), remote_endpoint);
+        //receive first handshake and client contact information
+        socket_.receive_from(boost::asio::buffer(*recv_buf), remote_endpoint);
 
         //send response
         std::string message{""};
@@ -87,6 +87,7 @@ void networkInstance::syncDTServerUDP(boost::asio::io_context& dt_io)
             boost::asio::buffer(*recv_buf), remote_endpoint,
             boost::bind(&handleReceive, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 
+        return(0);
         // for (;;)
         // {
         //     std::cout<<"Enter message: "<<std::endl;
@@ -95,16 +96,17 @@ void networkInstance::syncDTServerUDP(boost::asio::io_context& dt_io)
         //     socket_.send_to(boost::asio::buffer(message), remote_endpoint, 0, ignored_error);//0 is the flags
         // }
     }
-
-    catch(const std::exception& e)
+    catch (const boost::system::system_error& e)
     {
-        std::cerr << e.what() << std::endl;
-        std::cerr<<"ERROR SOMETHING BAD HAPPENED IN ASIO_TEST_CPP"<<std::endl;
+        socket_.close(); 
+        std::cerr << "Error: " << e.what() << " [Error code: ]" << e.code() << "]\n";
+        std::cout << "Connection handshake failed\n";
+        return(-1);
     }
 }
 
 
-void networkInstance::syncDTClientUDP(boost::asio::io_context& dt_io)
+int networkInstance::syncDTClientUDP(boost::asio::io_context& dt_io)
 {
     using boost::asio::ip::udp;
     try
@@ -133,10 +135,14 @@ void networkInstance::syncDTClientUDP(boost::asio::io_context& dt_io)
             [this](const boost::system::error_code& error, std::size_t bytesTransferred) {
                 networkInstance::handleReceive(error, bytesTransferred);
             });
+        return(0);
     }
-    catch(const std::exception& e)
+    catch (const boost::system::system_error& e)
     {
-        std::cerr << e.what() << '\n';
+        socket_.close(); 
+        std::cerr << "Error: " << e.what() << " [Error code: ]" << e.code() << "]\n";
+        std::cout << "Connection handshake failed\n";
+        return(-1);
     }
 
 }

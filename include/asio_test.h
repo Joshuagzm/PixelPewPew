@@ -62,8 +62,8 @@ class networkInstance
          {};
       boost::asio::ip::udp::socket socket_;
       std::shared_ptr<boost::array<char, 2048>> recv_buf = std::make_shared<boost::array<char, 2048>>();
-      void syncDTServerUDP(boost::asio::io_context& dt_io);
-      void syncDTClientUDP(boost::asio::io_context& dt_io);
+      int syncDTServerUDP(boost::asio::io_context& dt_io);
+      int syncDTClientUDP(boost::asio::io_context& dt_io);
       void handleReceive(const boost::system::error_code& error, std::size_t bytesTransferred);
       void sendMessage(std::string header, std::string body);
 
