@@ -63,8 +63,8 @@ class entity {
         bool isGrounded{false}; //is entity on the ground
         int jumpMax {1};        //max jumps
         int jumpStock {0};      //jumps available
-        int accelerationX{1};   //max speed increase per tick (linear acceleration)
-        int accelerationRateX{2}; //apply acceleration ever X ticks
+        int accelerationX{2};   //max speed increase per tick (linear acceleration)
+        int accelerationRateX{3}; //apply acceleration ever X ticks
         int throttledSpeedX{0}; //"actual" move speed dampened by acceleration
         int speedX {0};         //internal movement speed in x direction
         int speedY {0};         //internal movement speed in y direction

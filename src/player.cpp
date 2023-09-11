@@ -46,8 +46,8 @@ int player::initPlayer()
     this->hitbox.y = 100;
     this->hitbox.width = 20;
     this->hitbox.height = 20;
-    this->halfheight = this->height/2;
-    this->halfWidth = this->height/2;
+    this->halfheight = this->hitbox.height/2;
+    this->halfWidth = this->hitbox.width/2;
     this->speedX = 5;
     this->speedY = 0;
     this->jumpMax = 10;
@@ -148,8 +148,8 @@ int player::fireProjectile(std::deque<projectileAttack>* attackVector){
     //...     
     if(this->abilityCooldown < 1){
         projectileAttack newProjectile;
-        newProjectile.hitbox.x = this->hitbox.x + this->halfheight + this->halfheight*this->faceDirectionX;
-        newProjectile.hitbox.y = this->hitbox.y + this->halfheight;
+        newProjectile.hitbox.x = this->hitbox.x + this->halfWidth + this->halfheight*this->faceDirectionX;
+        newProjectile.hitbox.y = this->hitbox.y + this->halfheight - newProjectile.hitbox.height/2;
         newProjectile.speedX *= this->faceDirectionX;
         newProjectile.isSolid = false;
         attackVector->push_back(newProjectile);

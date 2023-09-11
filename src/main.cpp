@@ -844,10 +844,6 @@ void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected){
     DrawText(TextFormat(textServer), serverX, serverY, optionSize, serverColor);
     DrawText(TextFormat(textClient), clientX, clientY, optionSize, clientColor);
 
-    const char * textWarning {"WIP - Game will freeze while connecting, this is expected."};
-    Vector2 warningDimensions { MeasureTextEx(GetFontDefault(),textWarning, static_cast<float>(inputSize), textMeasureFactor)};
-    DrawText(TextFormat(textWarning), screenWidth/2 - warningDimensions.x/2 + 10, 560, inputSize, RED);
-
     //Display Connecting status
     std::string textConnecting;
 
@@ -865,7 +861,7 @@ void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected){
 
     gameText promptText("Return to menu", optionSize);
     promptText.position.x = screenWidth - promptText.dimensions.x - 50;
-    promptText.position.y = screenHeight - 100;
+    promptText.position.y = screenHeight - 50;
     promptText.colorOnHover(mousePos);
     if(promptText.isClickedOn(mousePos))
     {
@@ -906,10 +902,10 @@ void levelChat(std::string& latestMessage, bool& inputSelected, std::string& inp
     float titleX {screenWidth/2 - titleDimensions.x/2};
     float titleY {75};
     float returnX {screenWidth - returnDimensions.x - 50};
-    float returnY {530};
+    float returnY {550};
     //left align with return text
     float startX {returnX + returnDimensions.x - startDimensions.x};
-    float startY {500};
+    float startY {520};
 
     auto titleColor{WHITE};
     auto startColor{WHITE};
