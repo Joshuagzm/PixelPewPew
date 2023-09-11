@@ -28,6 +28,7 @@ enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, WIN, DEAD, CHAT, NETCONF, 
 enum eventType {E_HIT, E_DIE, E_SCORE, E_SCREEN, E_MISC};
 enum networkClass {DEFAULT, CLIENT, SERVER};
 enum messageType {M_MISC, M_PLAYER, M_STR, M_PROJ, M_ENEMY, M_EVENT};
+enum networkState{N_DISCONNECTED = 0, N_CONNECTING, N_CONNECTED, N_FAILED};
 
 int getRelativeDir(float src, float dst);//gets the direction of incrementation to get from src to dst
 std::vector<std::pair<int,int>> pairInterpolator(std::pair<int,int> in1, std::pair<int,int> in2);

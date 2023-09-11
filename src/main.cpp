@@ -395,45 +395,87 @@ int main () {
             }
         }
 
+        std::unique_lock<std::mutex> nlock(nStateMutex);
         switch(runMode)
         {
             case 1://Connecting as Client
             {
-                //default IP
-                if(ipAddrStr == ""){
-                    ipAddrStr = "192.168.1.142";
-                    std::cerr << "Empty string given for IP address, falling back to default"<<std::endl;
-                }
-                //convert IP address and port from string to correct type
-                networkHandler.remote_endpoint.address(boost::asio::ip::address::from_string(ipAddrStr));
-                networkHandler.remote_endpoint.port(networkHandler.serverPort);
-                //connect to server as client
-                if(networkHandler.syncDTClientUDP(io) != 0)
+                switch(nState)
                 {
-                    //connection failed
-                    peerType = DEFAULT;
-                    requestState = NETCONF;
-                }else{
-                    peerType = CLIENT;
-                    requestState = CHAT;
+                    //if disconnected, try to connect
+                    case N_DISCONNECTED:
+                    {
+                        nState = N_CONNECTING;
+                        //default IP
+                        if(ipAddrStr == ""){
+                            ipAddrStr = "192.168.1.142";
+                            std::cerr << "Empty string given for IP address, falling back to default"<<std::endl;
+                        }
+                        //convert IP address and port from string to correct type
+                        networkHandler.remote_endpoint.address(boost::asio::ip::address::from_string(ipAddrStr));
+                        networkHandler.remote_endpoint.port(networkHandler.serverPort);
+                        //connect to server as client
+                        if(networkHandler.syncDTClientUDP(io) == 0){
+                            nState = N_CONNECTED;
+                        }else{
+                            nState = N_FAILED;
+                        }
+                    }break;
+
+                    case N_CONNECTING:
+                    {
+                        //wait for connection success or failure
+                    }break;
+
+                    //successfully connected, switch to chat screen
+                    case N_CONNECTED:
+                    {
+                        peerType = CLIENT;
+                        requestState = CHAT;
+                        //reset run mode
+                        runMode = 0;
+                    }break;
+
+                    case N_FAILED:
+                    {
+                        runMode = 0;
+                    }break;
+
+
+                    default:break;
                 }
-                //reset run mode
-                runMode = 0;
             }break;
             case 2://Connecting as Server
             {
-                if(networkHandler.syncDTServerUDP(io) != 0)
+                switch(nState)
                 {
-                    //connection failed
-                    peerType = DEFAULT;
-                    requestState = NETCONF;
-                }else{
-                    peerType = SERVER;
-                    requestState = CHAT;
+                    //if disconnected, try to connect
+                    case N_DISCONNECTED:
+                    {
+                        nState = N_CONNECTING;
+                        networkHandler.syncDTServerUDP(io);
+                        std::cout<<"WAITING FOR CLIENT CONNECTION...\n";
+                    }break;
+
+                    case N_CONNECTING:
+                    {
+                        //wait for connection success or failure
+                    }break;
+
+                    //successfully connected, switch to chat screen
+                    case N_CONNECTED:
+                    {
+                        peerType = SERVER;
+                        requestState = CHAT;
+                        //reset run mode
+                        runMode = 0;
+                    }break;
+
+                    case N_FAILED:
+                    {
+                        runMode = 0;
+                    }break;
                 }
-                
-                //reset run mode
-                runMode = 0;
             }break;
             case -1://stop service
             {
@@ -443,6 +485,7 @@ int main () {
             }
             default: break;
         }
+        nlock.unlock();
 
         //begin camera drawing
         //game stage state machine

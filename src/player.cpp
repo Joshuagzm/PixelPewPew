@@ -176,9 +176,7 @@ int projectileAttack::moveProjectile()
 
 projectileAttack::projectileAttack()
 {
-    this->hitbox.width = 5;
-    this->hitbox.height = 5;
-    this->hitbox.width = 5;
-    this->hitbox.height = 5;
+    this->hitbox.width = 7;
+    this->hitbox.height = 7;
     this->speedX = 15;
 }

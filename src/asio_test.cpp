@@ -67,25 +67,8 @@ int networkInstance::syncDTServerUDP(boost::asio::io_context& dt_io)
 
         std::cout<<"Waiting for client connection..."<<std::endl;
         //receive first handshake and client contact information
-        socket_.receive_from(boost::asio::buffer(*recv_buf), remote_endpoint);
-
-        //send response
-        std::string message{""};
-        boost::system::error_code ignored_error;
-        socket_.send_to(boost::asio::buffer(message), remote_endpoint, 0, ignored_error);//0 is the flags
-
-        //receive confirmation of receipt
-        socket_.receive_from(//receive first handshake and client contact information
-                boost::asio::buffer(*recv_buf), remote_endpoint);
-
-        //connection complete
-        std::cout<<"Client connected!"<<std::endl;
-
-        //async receive from
-        
-        socket_.async_receive_from(//receive contact and store endpoint information in the remote_endpoint
-            boost::asio::buffer(*recv_buf), remote_endpoint,
-            boost::bind(&handleReceive, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+        //blocking - convert to async_receive_from with callback "firstHandshake" that calls send_to, then calls another async_receive_from
+        socket_.async_receive_from(boost::asio::buffer(*recv_buf), remote_endpoint, boost::bind(&serverInitialHandshake, this, boost::asio::placeholders::error));
 
         return(0);
         // for (;;)
@@ -101,6 +84,9 @@ int networkInstance::syncDTServerUDP(boost::asio::io_context& dt_io)
         socket_.close(); 
         std::cerr << "Error: " << e.what() << " [Error code: ]" << e.code() << "]\n";
         std::cout << "Connection handshake failed\n";
+        std::unique_lock<std::mutex> lock(nStateMutex);
+        nState = N_FAILED;
+        lock.unlock();
         return(-1);
     }
 }
@@ -116,6 +102,9 @@ int networkInstance::syncDTClientUDP(boost::asio::io_context& dt_io)
         socket_.open(udp::v4()); 
         socket_.bind(localEndpoint);        
         //three-way handshake
+        //timeout setup
+        std::shared_ptr<boost::asio::deadline_timer> timer = std::make_shared<boost::asio::deadline_timer>(dt_io);
+        timer->expires_from_now(boost::posix_time::seconds(3));
         // boost::array<char, 128> send_buf = {{0}};//dummy message to make contact with the server
         std::cout<<"Connecting..."<<std::endl;
         std::string message{""};
@@ -135,6 +124,7 @@ int networkInstance::syncDTClientUDP(boost::asio::io_context& dt_io)
             [this](const boost::system::error_code& error, std::size_t bytesTransferred) {
                 networkInstance::handleReceive(error, bytesTransferred);
             });
+        
         return(0);
     }
     catch (const boost::system::system_error& e)
@@ -190,4 +180,47 @@ void networkInstance::sendMessage(std::string header, std::string body)
     {
         this->socket_.send_to(boost::asio::buffer(msg.substr(i,boost::size(*recv_buf))), this->remote_endpoint, 0, ignored_error);
     }    
+}
+
+//after the first handshake is received, send, and set up 
+void networkInstance::serverInitialHandshake(const boost::system::error_code& error)
+{
+    if(!error){
+        std::cout<<"First response received"<<std::endl;
+        //send response
+        std::string message{""};
+        boost::system::error_code ignored_error;
+        socket_.send_to(boost::asio::buffer(message), remote_endpoint, 0, ignored_error);//non blocking
+
+        //receive confirmation of receipt
+        socket_.async_receive_from(boost::asio::buffer(*recv_buf), remote_endpoint, boost::bind(&serverFinalHandshake, this, boost::asio::placeholders::error));
+    }else{
+        //report errors
+        std::cerr << "Error: " << error.message() << std::endl;
+    }
+
+}
+
+//after the connection is established, 
+void networkInstance::serverFinalHandshake(const boost::system::error_code& error)
+{
+    //once response is received again, client is connected!
+    //connection complete
+    std::cout<<"Client connected!"<<std::endl;
+
+    //begin the main communication loop 
+    socket_.async_receive_from(//receive contact and store endpoint information in the remote_endpoint
+        boost::asio::buffer(*recv_buf), remote_endpoint,
+        boost::bind(&handleReceive, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+
+    //set network state to "connected"
+    std::unique_lock<std::mutex> lock(nStateMutex);
+    nState = N_CONNECTED;
+    lock.unlock();
+}
+
+//callback for client async_receive during handshaking - handles timeout
+void networkInstance::clientHandshake(const boost::system::error_code& error)
+{
+
 }

@@ -68,6 +68,9 @@ bool gamePaused {true};
 bool gameExitRequested {false};
 bool gameExitConfirmed {false};
 
+//thread-shared data
+networkState nState {N_DISCONNECTED};
+std::mutex nStateMutex;
 std::deque<std::string> receivedDataQueue;
 std::mutex queueMutex;
 

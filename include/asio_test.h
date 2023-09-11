@@ -53,6 +53,8 @@ class recurringTimer
 
 extern std::deque<std::string> receivedDataQueue;
 extern std::mutex queueMutex;
+extern networkState nState;
+extern std::mutex nStateMutex;
 
 class networkInstance
 {
@@ -65,6 +67,9 @@ class networkInstance
       int syncDTServerUDP(boost::asio::io_context& dt_io);
       int syncDTClientUDP(boost::asio::io_context& dt_io);
       void handleReceive(const boost::system::error_code& error, std::size_t bytesTransferred);
+      void serverInitialHandshake(const boost::system::error_code& error);
+      void serverFinalHandshake(const boost::system::error_code& error);
+      void clientHandshake(const boost::system::error_code& error);
       void sendMessage(std::string header, std::string body);
 
       const int clientPort {30065};
