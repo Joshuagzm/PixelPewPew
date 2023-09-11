@@ -405,6 +405,10 @@ int main () {
                     //if disconnected, try to connect
                     case N_DISCONNECTED:
                     {
+                        //if socket is open, close
+                        if(networkHandler.socket_.is_open()){
+                            networkHandler.socket_.close();
+                        }
                         nState = N_CONNECTING;
                         //default IP
                         if(ipAddrStr == ""){
@@ -439,9 +443,8 @@ int main () {
                     case N_FAILED:
                     {
                         runMode = 0;
+                        nState = N_DISCONNECTED;
                     }break;
-
-
                     default:break;
                 }
             }break;
@@ -452,6 +455,10 @@ int main () {
                     //if disconnected, try to connect
                     case N_DISCONNECTED:
                     {
+                        //if socket is open, close
+                        if(networkHandler.socket_.is_open()){
+                            networkHandler.socket_.close();
+                        }
                         nState = N_CONNECTING;
                         networkHandler.syncDTServerUDP(io);
                         std::cout<<"WAITING FOR CLIENT CONNECTION...\n";
@@ -474,6 +481,7 @@ int main () {
                     case N_FAILED:
                     {
                         runMode = 0;
+                        nState = N_DISCONNECTED;
                     }break;
                 }
             }break;
@@ -855,13 +863,7 @@ void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected){
         }
     }
 
-    if(runMode > 0 && runMode < 3)
-    {
-        Vector2 connectingDimensions { MeasureTextEx(GetFontDefault(),textConnecting.c_str(), static_cast<float>(optionSize), textMeasureFactor)};
-        DrawText(TextFormat(textConnecting.c_str()), screenWidth/2 - connectingDimensions.x/2, 500, optionSize, YELLOW);
-    }
-
-    gameText promptText("return to menu", optionSize);
+    gameText promptText("Return to menu", optionSize);
     promptText.position.x = screenWidth - promptText.dimensions.x - 50;
     promptText.position.y = screenHeight - 100;
     promptText.colorOnHover(mousePos);
@@ -870,6 +872,12 @@ void levelNetConf(int& runMode, std::string& ipAddrStr, bool& inputSelected){
         requestState = TITLE;
     }
     promptText.drawToScreen();
+
+    if(runMode > 0 && runMode < 3)
+    {
+        Vector2 connectingDimensions { MeasureTextEx(GetFontDefault(),textConnecting.c_str(), static_cast<float>(optionSize), textMeasureFactor)};
+        DrawText(TextFormat(textConnecting.c_str()), screenWidth/2 - connectingDimensions.x/2, 450, optionSize, YELLOW);
+    }
 
     EndDrawing();
     
@@ -897,10 +905,11 @@ void levelChat(std::string& latestMessage, bool& inputSelected, std::string& inp
 
     float titleX {screenWidth/2 - titleDimensions.x/2};
     float titleY {75};
-    float startX {screenWidth/2 - startDimensions.x - 50};
-    float startY {500};
     float returnX {screenWidth - returnDimensions.x - 50};
-    float returnY {550};
+    float returnY {530};
+    //left align with return text
+    float startX {returnX + returnDimensions.x - startDimensions.x};
+    float startY {500};
 
     auto titleColor{WHITE};
     auto startColor{WHITE};

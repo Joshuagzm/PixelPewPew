@@ -6,6 +6,8 @@
  - WEIRD STICKING TO CORNERS OF PLATFORMS
  - Not proper clearing of entities or entity properites after screen change
 
+ - Not resetting network state and things on return to title
+ - Can't switch between server and client
 
 */
 

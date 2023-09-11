@@ -134,7 +134,6 @@ int networkInstance::syncDTClientUDP(boost::asio::io_context& dt_io)
         std::cout << "Connection handshake failed\n";
         return(-1);
     }
-
 }
 
 //reception handler for async receive
