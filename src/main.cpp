@@ -71,8 +71,11 @@ int main () {
     protag.playerIndex = playerVector.size();
     playerVector.push_back(&protag);
 
+    //initialise potential other player - TODO: FIX
     player p_client;
     p_client.initPlayer();
+    p_client.hitbox.x = -50;
+    p_client.hitbox.y = -50;
     p_client.playerIndex = playerVector.size();
     playerVector.push_back(&p_client);
 
@@ -461,7 +464,6 @@ int main () {
                         }
                         nState = N_CONNECTING;
                         networkHandler.syncDTServerUDP(io);
-                        std::cout<<"WAITING FOR CLIENT CONNECTION...\n";
                     }break;
 
                     case N_CONNECTING:
@@ -583,7 +585,7 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
     if(prevState != gameState){
         stageWidth = 2*screenHeight;
         stageHeight = screenHeight;
-        resetWorld(&platformVector, &enemyVector, &attackVector);
+        resetWorld(&platformVector, &enemyVector, &attackVector, gridContainer);
         registerPlatform(&platformVector, 20,100,400,20);
         registerPlatform(&platformVector, 600,200,100,20);
         registerPlatform(&platformVector, 800,300,600,20);
@@ -595,7 +597,6 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
         *winCount = 10;
         *killCount = 0;
         protag->initPlayer();
-    
     }
     //draw - order of drawing determines layers
     gamePaused = false;

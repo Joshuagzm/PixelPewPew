@@ -12,3 +12,15 @@ int getCurrentCol(int xPos)
 {
     return (static_cast<int>(xPos*colFactor));
 }
+
+void clearGrid(std::unordered_map<std::pair<int, int>, gridCell>& grid)
+{
+    //clear hitboxes from the grid
+    for(auto& cell : grid)
+    {
+        //clear contents of each cell (second)
+        std::cout<<cell.second.size()<<" Pre\n";
+        cell.second.clear();
+        std::cout<<cell.second.size()<<" Post\n\n";
+    }
+}

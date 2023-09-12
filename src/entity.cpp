@@ -25,7 +25,7 @@ entity::entity()
 void entity::killEntity()
 {
     //removes grid occupation
-    std::cout<<"DESTROYING ENTITY\n";
+    std::cout<<"DESTROYING ENTITY: " << boost::uuids::to_string(entityID) << "\n";
     this->isAlive = false;
 }
 

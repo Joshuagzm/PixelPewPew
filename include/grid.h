@@ -10,6 +10,8 @@
 #include <string>
 #include "functs.h"
 #include <boost/functional/hash.hpp>
+#include <iostream>
+
 
 //forward declarations
 class entity;
@@ -49,6 +51,8 @@ const float rowFactor {static_cast<float>(gridRows)/static_cast<float>(screenWid
 const float colFactor {static_cast<float>(gridCols)/static_cast<float>(screenHeight)};
 
 int getCurrentRow(int yPos);
-int getCurrentCol(int xPos);  
+int getCurrentCol(int xPos); 
+
+void clearGrid(std::unordered_map<std::pair<int, int>, gridCell>& grid);
 
 #endif

@@ -12,10 +12,23 @@ int registerPlatform(std::deque<entity>* platformVector, float platX, float plat
     return 0;
 }
 
-int resetWorld(std::deque<entity>* platformVector, std::deque<genericEnemy>* enemyVector, std::deque<projectileAttack>* attackVector)
+int resetWorld(std::deque<entity>* platformVector, std::deque<genericEnemy>* enemyVector, std::deque<projectileAttack>* attackVector, std::unordered_map<std::pair<int, int>, gridCell>& grid)
 {
     platformVector->clear();
-    enemyVector->clear();
-    attackVector->clear();
+    for (auto& e : *enemyVector){
+        //place out of range
+        e.hitbox.x = -50;
+        e.hitbox.y = -50;
+        //kill
+        e.killEntity();
+    }
+    //kill all projectiles
+    for (auto& a : *attackVector){
+        //place out of range
+        a.hitbox.x = -50;
+        a.hitbox.y = -50;
+        //kill
+        a.killEntity();
+    }
     return 0;
 }

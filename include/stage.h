@@ -13,5 +13,5 @@
 //register platform
 int registerPlatform(std::deque<entity>* platformVector, float platX, float platY, float platWidth, float platHeight);
 //clear platforms
-int resetWorld(std::deque<entity>* platformVector, std::deque<genericEnemy>* enemyVector, std::deque<projectileAttack>* attackVector);
+int resetWorld(std::deque<entity>* platformVector, std::deque<genericEnemy>* enemyVector, std::deque<projectileAttack>* attackVector, std::unordered_map<std::pair<int, int>, gridCell>& grid);
 #endif
