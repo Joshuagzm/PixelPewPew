@@ -5,10 +5,17 @@
 /*
  - WEIRD STICKING TO CORNERS OF PLATFORMS
  - Not proper clearing of entities or entity properites after screen change
+ - Jump count resets on hitting platform from underneath
 
  - Not resetting network state and things on return to title
  - Can't switch between server and client
 
+
+TODO:
+ - Improve enemy template to support multiple types and HP 
+
+TO INVESTIGATE:
+ - Entity->getSerialisedStr breaks serialisation of polymorphic classes when called from a derived class. Why? 
 */
 
 #include <iostream>
@@ -61,6 +68,9 @@ std::deque<projectileAttack> attackVector;
 std::deque<genericEnemy> enemyVector;
 std::deque<entity*> playerVector;
 
+//tracking
+std::deque<genericEnemy>::iterator enemyIt;
+
 //vectors for external object (multiplayer) - no collision handling (yet)
 std::deque<projectileAttack> extAttackVector;
 std::deque<entity*> extPlayerVector;
@@ -69,6 +79,15 @@ bool gameReplay {true};
 bool gamePaused {true};
 bool gameExitRequested {false};
 bool gameExitConfirmed {false};
+
+//screen variables
+std::string ipAddrStr{""};
+bool inputSelected{false};
+std::string textInput{""};
+//Communication state and reading variables
+int readingState {0};
+uint32_t headerSize{0};
+uint32_t bodySize{0};
 
 //thread-shared data
 networkState nState {N_DISCONNECTED};

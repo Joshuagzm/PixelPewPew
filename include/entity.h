@@ -44,6 +44,7 @@ class entity {
 
     public:
         entity();
+        virtual ~entity(){}
         //physical properties
         enum directionX {left = -1, right = 1}; //facing direction
         float prevX {0};                        //previous position X
@@ -86,6 +87,10 @@ class entity {
         bool isSolid {false};            //can entities pass through
         bool isTouchDamage {false};     //will the player take touch damage 
 
+        //internal timing
+        int frameCount{0};
+        int frameMax{60};
+
         //alignment
         enum entityAlignment {PLAYER = 0, MONSTER = 1, NEUTRAL = 2, OBJECT = 3};
         entityAlignment alignment {NEUTRAL};
@@ -107,6 +112,9 @@ class entity {
         bool checkInSquare(int* squareWidth, int* squareHeight);
         bool checkInTopless(int* squareWidth, int* squareHeight);
 
+        //internal tick update
+        void onTick();
+
         //check current grid occupation
         int updateGridOccupation();
         pairSetType gridCellsCurrent{&comparePairs};
@@ -114,6 +122,10 @@ class entity {
         int removeGridOccupation(pairSetType cellsToRemove);
         int addGridOccupation(pairSetType cellsToAdd);
         void killEntity();
+        
+        //virtual functions
+        virtual int onHit();
+        virtual void onDeath();
         
         //serialisation
         template <class Archive>
@@ -127,7 +139,6 @@ class entity {
             a & isAlive;
             this->entityID = boost::uuids::string_generator()(strEntityID);
         }
-        std::string getSerialisedEntity();
         std::string getSerialisedEntityHeader(uint32_t bodySize, messageType msgType);
         std::string getIDString();
 };

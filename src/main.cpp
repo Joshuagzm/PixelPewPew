@@ -6,7 +6,7 @@ void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width,
 //MAIN
 //// 
 int main () {
-    //SERVER CLIENT COMMON
+    //initialise window
     InitWindow(screenWidth, screenHeight, "A platformer?");
     SetTargetFPS(targetFPS);
 
@@ -15,43 +15,36 @@ int main () {
 
     //start io context
     boost::asio::io_context io;
-    //ensure that the context never runs out of work
     boost::asio::io_context::work dummyWork(io);
+
     //circular buffer to keep limited chat history
     int chatHistoryLength {10};
     std::string textHistoryDefault{""};
     boost::circular_buffer<std::string> chatBuffer(chatHistoryLength, textHistoryDefault);
     //the latest message
     std::string latestMessage;
+
+    //connectivity mode
     int runMode {0};
+
+    //set up callback thread
     std::thread testThread([&io]() {
         io.run();
         std::cout << "IO Context thread exiting..." << std::endl;
     });
 
+    //initialise network handler instance
     networkInstance networkHandler(io);    
 
-    //ipaddress
-    std::string ipAddrStr{""};
-    bool inputSelected{false};
-    //generic text input string
-    std::string textInput{""};
-
-    //Communication state and reading variables
-    int readingState {0};//integer representing reading state: 0 - Header, 1 - body;
-    uint32_t headerSize{0};
-    uint32_t bodySize{0};
-
-
     //TIMER TESTS
-    if(false)
-    {
-    //test timer
-    //timer initialisation (timing starts from initialisation)
-    recurringTimer recurringTimer(io);
-    }
+    // if(false)
+    // {
+    // //test timer
+    // //timer initialisation (timing starts from initialisation)
+    // recurringTimer recurringTimer(io);
+    // }
 
-    //grid initialise
+    //initialise grid
     gridCell emptyCell;
     for (auto& cell : pairInterpolator(std::make_pair(getCurrentCol(0),getCurrentRow(0)), std::make_pair(getCurrentCol(stageWidth), getCurrentRow(stageHeight))))
     {
@@ -91,6 +84,10 @@ int main () {
     //initialise win condition
     int winCount {10};
     int killCount {0};
+
+    //TEMP
+    genericEnemy slimeBoss;
+    bool bossSpawned{false};
 
     //GAME LOOP
     while (WindowShouldClose() == false && gameExitConfirmed == false){
@@ -153,7 +150,6 @@ int main () {
                                 std::string recv_msg;
                                 iarchive >> recv_msg;
                                 chatBuffer.push_back("Received: " + recv_msg);
-
                             }break;
                             //handle player information
                             case M_PLAYER:
@@ -200,7 +196,9 @@ int main () {
                                     //enemy was hit! find the corresponding enemy based on UUID and unalive is TODO: make this better - restructure as a map?
                                     for (auto& enemy: enemyVector){
                                         if(enemy.getIDString() ==  tempEvent.eID){
-                                            enemy.killEntity();
+                                            if(enemy.onHit() == 1){
+                                                killCount++;
+                                            }
                                             break;
                                         }
                                     }
@@ -280,30 +278,33 @@ int main () {
                         switch(closeEntity->alignment){
                             case entity::MONSTER:
                             {
-                                proj.killEntity();
-                                closeEntity->killEntity();
-                                killCount += 1;
                                 //indicate exit
                                 exitFlag = true;
-                                //if client, send kill message to the server
+                                proj.killEntity();
+                                if(closeEntity->onHit() == 1)
+                                {
+                                    killCount += 1;
+                                }
+                                
+                                //if client, send hit message to the server
                                 if(peerType == CLIENT){
                                     //form event
-                                    eventMessage killEvent;
-                                    killEvent.eType = E_HIT;
-                                    killEvent.eID = closeEntity->getIDString();
+                                    eventMessage hitEvent;
+                                    hitEvent.eType = E_HIT;
+                                    hitEvent.eID = closeEntity->getIDString();
                                     //serialise and send
-                                    std::string msgBody{getSerialisedStr(killEvent)};
+                                    std::string msgBody{getSerialisedStr(hitEvent)};
                                     std::string msgHeader{getSerialisedStrHeader(msgBody.size(), M_EVENT)};
                                     networkHandler.sendMessage(msgHeader, msgBody);
 
-                                    //form update score event TODO
-                                    eventMessage scoreEvent;
-                                    scoreEvent.eType = E_SCORE;
-                                    scoreEvent.eValue = 1;//score increment value;
-                                    //serialise and send
-                                    msgBody = getSerialisedStr(scoreEvent);
-                                    msgHeader = getSerialisedStrHeader(msgBody.size(), M_EVENT);
-                                    networkHandler.sendMessage(msgHeader, msgBody);
+                                    // //form update score event TODO
+                                    // eventMessage scoreEvent;
+                                    // scoreEvent.eType = E_SCORE;
+                                    // scoreEvent.eValue = 1;//score increment value;
+                                    // //serialise and send
+                                    // msgBody = getSerialisedStr(scoreEvent);
+                                    // msgHeader = getSerialisedStrHeader(msgBody.size(), M_EVENT);
+                                    // networkHandler.sendMessage(msgHeader, msgBody);
                                 }
                             }break;
                             case entity::OBJECT:
@@ -324,10 +325,29 @@ int main () {
             //ENEMY DIRECTOR
             if(peerType != CLIENT){
                 enemyDir.tickUpdate(enemyVector);
+
+                //spawn boss?
+                if(killCount >= winCount && bossSpawned == false){
+                    slimeBoss = enemyDir.spawnSlimeBoss();
+                    enemyVector.push_back(slimeBoss);
+                    enemyIt = std::prev(enemyVector.end());
+                    bossSpawned = true;
+                }
+
+                if(bossSpawned)
+                {
+                    if(enemyIt->isAlive == false){
+                        requestState = WIN;
+                        bossSpawned = false;
+                    } 
+                }
             }
+
+
 
             //update enemy position
             for(auto& foe: enemyVector){
+                foe.onTick();
                 foe.updateMovement(protag.hitbox.x,protag.hitbox.y);
                 for(auto& plat: platformVector){
                     foe.collisionHandler(&plat);
@@ -343,7 +363,7 @@ int main () {
             if(peerType != DEFAULT)
             {
                 //transmit player information
-                std::string playerStr{protag.getSerialisedEntity()};
+                std::string playerStr{getSerialisedStr(protag)};
                 std::string playerHeader{protag.getSerialisedEntityHeader(playerStr.size(), M_PLAYER)};
                 networkHandler.sendMessage(playerHeader, playerStr);
 
@@ -398,6 +418,9 @@ int main () {
             }
         }
 
+
+
+        //network connection handler
         std::unique_lock<std::mutex> nlock(nStateMutex);
         switch(runMode)
         {
@@ -640,7 +663,7 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
     EndDrawing();
     //check win condition
     if(*killCount >= *winCount){
-        requestState = WIN;
+        // requestState = WIN;
     }
     //check death condition
     if(protag->hp <= 0){

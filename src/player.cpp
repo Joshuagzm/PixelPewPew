@@ -50,7 +50,7 @@ int player::initPlayer()
     this->halfWidth = this->hitbox.width/2;
     this->speedX = 5;
     this->speedY = 0;
-    this->jumpMax = 10;
+    this->jumpMax = 2;
     this->maxHp = 3;
     this->hp = this->maxHp;
     this->isInvulnerable = false;

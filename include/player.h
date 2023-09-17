@@ -22,6 +22,7 @@ class player;
 class projectileAttack: public entity {
     public:
     projectileAttack();
+    ~projectileAttack() override{}
     int damage {10};
 
     //methods
@@ -37,6 +38,7 @@ class projectileAttack: public entity {
 
 class player: public entity {
     public:
+    ~player() override{}
     int initPlayer();
     //variables
     int abilityCooldown {0};

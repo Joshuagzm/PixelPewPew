@@ -19,6 +19,8 @@ genericEnemy enemyDirector::spawnCommand()
     enemy.speedY = 1;
     enemy.baseSpeed = 2;
     enemy.gravity = 1;
+    enemy.maxHp = 1;
+    enemy.hp = 1;
 
     enemy.isSolid = false;
     enemy.isTouchDamage = true;
@@ -27,8 +29,38 @@ genericEnemy enemyDirector::spawnCommand()
 
     enemy.updateGridOccupation();
 
-
     return(enemy);
+}
+
+genericEnemy enemyDirector::spawnSlimeBoss()
+{
+    //spawn an enemy in the upper third of the screen of some default size
+    genericEnemy enemy;
+    enemy.hitbox.x = 50;
+    enemy.hitbox.y = 200;
+
+    enemy.hitbox.height = 80;
+    enemy.hitbox.width = 80;
+
+    enemy.halfheight = enemy.hitbox.height/2;
+    enemy.halfWidth = enemy.hitbox.width/2;
+
+    //initial stats
+    enemy.speedX = 1;
+    enemy.speedY = 1;
+    enemy.baseSpeed = 8;
+    enemy.gravity = 1;
+    enemy.maxHp = 15;
+    enemy.hp = 15;
+
+    enemy.isSolid = false;
+    enemy.isTouchDamage = true;
+
+    enemy.alignment = MONSTER;
+
+    enemy.updateGridOccupation();
+
+    return enemy;
 }
 
 //define the main movement loop here
@@ -69,6 +101,23 @@ int genericEnemy::updateMovement(float playerX, float playerY)
     return 0;
 }
 
+int genericEnemy::onHit()
+{
+    //on hit decrement HP by damage (default 1 for now)
+    hp--;
+    if(hp < 1){
+        onDeath();
+        return 1;
+    }
+    return 0;
+}
+
+void genericEnemy::onDeath()
+{
+    //on death, kill itself
+    killEntity();
+}
+
 //function to update the enemy director on each tick
 void enemyDirector::tickUpdate(std::deque<genericEnemy>& enemyList)
 {
@@ -79,4 +128,51 @@ void enemyDirector::tickUpdate(std::deque<genericEnemy>& enemyList)
         enemyList.push_back(this->spawnCommand());
         this->spawnTimer = 0;
     }
+}
+
+//AI piece for the first stage boss
+void genericEnemy::slimeBossAI()
+{
+    //Movement
+    
+    //Attack Pattern
+    
+    //Phases
+}
+
+int bossSlime::updateMovement(float playerX, float playerY)
+{   
+    //jump based on the timer
+    jumpTimerThresh = 120;//jump every 2 seconds give or take a second
+    if(this->jumpStock == this->jumpMax && jumpTimer >= jumpTimerThresh + rand()%60)
+    {
+        //randomise jump height a bit
+        this->jumpHeight = -1*(90 + rand()%3);
+        //consume jumpstock
+        this->jumpStock -= 1;
+        this->setSpeedY(this->jumpHeight);
+        this->jumpTimer = 0;
+        //first determine x direction movement
+        this->dirX = getRelativeDir(this->hitbox.x, playerX);
+    }else{
+        jumpTimer = MIN(jumpTimer+1, jumpTimerThresh+1);
+    }
+    //if in the air, move x
+    if(abs(this->speedY) > 0){
+        //adjust speed to dir
+        this->setSpeedX(dirX*this->baseSpeed);
+    }else{
+        this->setSpeedX(0);
+    }
+    //apply gravity
+    this->applyGravity(this->gravity);
+
+    //get previous position
+    this->prevX = this->hitbox.x;
+    this->prevY = this->hitbox.y;
+
+    //update position
+    this->hitbox.x += this->speedX;
+    this->hitbox.y += this->speedY;
+    return 0;
 }

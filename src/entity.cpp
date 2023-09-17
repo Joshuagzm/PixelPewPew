@@ -25,7 +25,6 @@ entity::entity()
 void entity::killEntity()
 {
     //removes grid occupation
-    std::cout<<"DESTROYING ENTITY: " << boost::uuids::to_string(entityID) << "\n";
     this->isAlive = false;
 }
 
@@ -122,8 +121,11 @@ int entity::collisionHandler(entity * obj){
                     //old
                     hitbox.y = newY;
                     speedY = 0;
-                    isGrounded = true;
                     jumpStock = jumpMax;
+
+                    //check if object is solid and beneath
+                    if(obj->isSolid && obj->hitbox.y > hitbox.y)
+                        isGrounded = true;
                     
 
                     // //check if newY is still within the other object
@@ -300,6 +302,7 @@ int entity::addGridOccupation(pairSetType cellsToAdd){
 
 std::vector<entity *> entity::checkCloseEntities()
 {
+    //reset grounded variable
     isGrounded = false;
     std::vector<entity *> closeEntities;
     //check grid cells for entities that are NOT self
@@ -319,14 +322,6 @@ std::vector<entity *> entity::checkCloseEntities()
     return closeEntities;
 }
 
-std::string entity::getSerialisedEntity()
-{
-    std::stringstream ss;
-    boost::archive::text_oarchive oarchive(ss);
-    oarchive << this;
-    return ss.str();
-}
-
 std::string entity::getSerialisedEntityHeader(uint32_t bodySize, messageType msgType)
 {
     //initialise string stream, archive and temp header obj
@@ -336,7 +331,7 @@ std::string entity::getSerialisedEntityHeader(uint32_t bodySize, messageType msg
     //fill header fields
     entHeader.bodySize = bodySize;
     entHeader.headerUUID = boost::uuids::to_string(this->entityID);
-    entHeader.msgType = msgType;
+    entHeader.msgType =  msgType;
     //archive
     oarchive << entHeader;
     //pad header
@@ -347,4 +342,23 @@ std::string entity::getSerialisedEntityHeader(uint32_t bodySize, messageType msg
 std::string entity::getIDString()
 {
     return(boost::uuids::to_string(this->entityID));
+}
+
+//entity tick updater
+void entity::onTick()
+{
+    frameCount++;
+    if(frameCount > frameMax)
+        frameCount = 0;
+}
+
+int entity::onHit()
+{
+    std::cout<<"Default Entity Hit - not implemented"<<std::endl;
+    return 0;
+}
+
+void entity::onDeath()
+{
+    std::cout<<"Default Entity Death - not implemented"<<std::endl;
 }
