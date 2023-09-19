@@ -56,6 +56,8 @@ int main () {
     enemyDirector enemyDir;
     enemyDir.spawnThresh = 5*targetFPS;
     enemyDir.spawnTimer = enemyDir.spawnThresh-targetFPS;
+    enemyDir.spawnableHeight = stageHeight;
+    enemyDir.spawnableWidth = stageWidth;
 
     //COMMON
     //initialise player 
@@ -353,7 +355,7 @@ int main () {
                     foe.collisionHandler(&plat);
                 }
                 //set the destruction bit
-                if( !foe.checkInTopless(&stageWidth, &stageHeight) )
+                if( foe.hitbox.y > stageHeight)
                 {
                     foe.killEntity();
                 }
@@ -617,7 +619,7 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
         registerPlatform(&platformVector, 1350,200,100,20);
         registerPlatform(&platformVector, 1400,300,100,20);
         registerPlatform(&platformVector, 0,stageHeight - 10,stageWidth,10);    //the floor
-        *winCount = 10;
+        *winCount = 2;
         *killCount = 0;
         protag->initPlayer();
     }

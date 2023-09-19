@@ -64,8 +64,6 @@ int entity::collisionOrder(float * x, float * y)
 int entity::collisionHandler(entity * obj){
     //Base: check if there is a collision between the object and the next position
     //Generate list of rectangles to compare against 
-    std::vector<Rectangle> rectProjections;
-
     int maxAttempts = 100;
     int attempt = 0;
     bool didCollide = false;
@@ -118,15 +116,17 @@ int entity::collisionHandler(entity * obj){
                 {
                     hitbox.y > prevY ? dir = -1 : dir = 1;
                     newY = hitbox.y + (boxCollision.height)*dir;
+
+                    //check if the the correction moved the entity up (indicating landing on top of something)
+                    if(obj->isSolid && hitbox.y > newY)
+                    {
+                        jumpStock = jumpMax;//move to where isGrounded takes effect
+                        isGrounded = true;
+                    }
+                        
                     //old
                     hitbox.y = newY;
                     speedY = 0;
-                    jumpStock = jumpMax;
-
-                    //check if object is solid and beneath
-                    if(obj->isSolid && obj->hitbox.y > hitbox.y)
-                        isGrounded = true;
-                    
 
                     // //check if newY is still within the other object
                     // if(!checkInBounds(static_cast<float>(newY) + dir, obj->hitbox.y, obj->hitbox.y+obj->hitbox.height) &&
@@ -346,10 +346,14 @@ std::string entity::getIDString()
 
 //entity tick updater
 void entity::onTick()
-{
+{   
+    overflow = false;
     frameCount++;
     if(frameCount > frameMax)
+    {
         frameCount = 0;
+        overflow = true;
+    }
 }
 
 int entity::onHit()

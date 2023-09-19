@@ -64,6 +64,15 @@ template <typename T> T cappedAddition(T currentVal, T addVal, T limit){
     }
 }
 
+//addition that loops on defined overflow
+template <typename T> T loopedAddition(T& inputValue, T addValue, T lLimit, T uLimit){
+    if(inputValue + addValue > uLimit){//if overflow, loop from lowerLimit
+        return(lLimit + inputValue + addValue - uLimit);
+    }else{
+        return(inputValue + addValue);
+    }    
+}
+
 
 
 std::string getSerialisedStrHeader(uint32_t strSize, messageType msgType);

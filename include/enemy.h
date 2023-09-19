@@ -9,6 +9,8 @@
 #include "include/functs.h"
 #include "include/entity.h"
 
+enum enemyType {ET_SLIME, ET_SLIMEBOSS, ET_MISC};
+
 class genericEnemy: public entity
 {
     protected:
@@ -17,16 +19,16 @@ class genericEnemy: public entity
         int jumpTimer = 0;
         int jumpTimerThresh = 90;
         int jumpHeight = -15;
+        
 
     public:
         ~genericEnemy() override{}
         int ID;
         virtual int updateMovement(float playerX, float playerY);
-        int updateBossMovement(float playerX, float playerY);
         void slimeBossAI();
         int onHit() override;
         void onDeath() override;
-
+        enemyType eType{ET_MISC};
 
         //serialisation function
         template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -57,7 +59,18 @@ class bossSlime : public genericEnemy
 {
     public:
         ~bossSlime() override{}
+        bossSlime()
+        {
+            jumpTimerThresh = 120;//jump every 2 seconds give or take a second
+            eType = ET_SLIMEBOSS;
+        }
+
         int updateMovement(float playerX, float playerY) override;
+        //probably private
+        int moveState{0};//big state
+        int intState{0};//intermediate state
+        int timerGoal{0};//a timer goal
+
 
         //serialisation function
         template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -76,6 +89,8 @@ class enemyDirector: public entity
         int spawnThresh;
         int currentID;
         bool isRunning {false};
+        int spawnableWidth {1};
+        int spawnableHeight {1};
 
         //methods
         genericEnemy spawnCommand();

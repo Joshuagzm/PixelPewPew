@@ -90,6 +90,7 @@ class entity {
         //internal timing
         int frameCount{0};
         int frameMax{60};
+        bool overflow{false};
 
         //alignment
         enum entityAlignment {PLAYER = 0, MONSTER = 1, NEUTRAL = 2, OBJECT = 3};
