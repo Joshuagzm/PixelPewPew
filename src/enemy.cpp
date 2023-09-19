@@ -28,8 +28,6 @@ genericEnemy enemyDirector::spawnCommand()
 
     enemy.alignment = MONSTER;
 
-    enemy.updateGridOccupation();
-
     return(enemy);
 }
 

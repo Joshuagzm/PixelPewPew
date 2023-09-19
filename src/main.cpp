@@ -247,6 +247,7 @@ int main () {
         if(gamePaused != true){
             //Initialisations
             protag.initLoop();
+            protag.onTick();
             //Movement handling
             protag.checkMoveInput();
             protag.checkAttackInput(&attackVector);
@@ -256,15 +257,6 @@ int main () {
             protag.moveY();
             protag.screenBorder(stageHeight, stageWidth);
 
-            //update grid membership
-            protag.updateGridOccupation();
-            for (auto& enemy: enemyVector){
-                enemy.updateGridOccupation();
-            }
-            for (auto& proj: attackVector){
-                proj.updateGridOccupation();
-            }
-
             //check collision between the player and entities within its grid cell
             for(const auto& closeEntity: protag.checkCloseEntities()){
                 protag.collisionHandler(closeEntity);
@@ -272,6 +264,7 @@ int main () {
 
             //check projectile collisions
             for(auto& proj: attackVector){
+                proj.onTick();
                 bool exitFlag {false};
                 //check against close entities
                 for(const auto& closeEntity: proj.checkCloseEntities()){

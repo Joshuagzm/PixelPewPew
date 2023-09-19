@@ -347,6 +347,7 @@ std::string entity::getIDString()
 //entity tick updater
 void entity::onTick()
 {   
+    updateGridOccupation();
     overflow = false;
     frameCount++;
     if(frameCount > frameMax)
