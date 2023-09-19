@@ -33,10 +33,10 @@ genericEnemy enemyDirector::spawnCommand()
     return(enemy);
 }
 
-genericEnemy enemyDirector::spawnSlimeBoss()
+bossSlime enemyDirector::spawnSlimeBoss()
 {
     //spawn an enemy in the upper third of the screen of some default size
-    genericEnemy enemy;
+    bossSlime enemy;
     enemy.hitbox.x = 50;
     enemy.hitbox.y = 200;
 
@@ -49,7 +49,7 @@ genericEnemy enemyDirector::spawnSlimeBoss()
     //initial stats
     enemy.speedX = 1;
     enemy.speedY = 1;
-    enemy.baseSpeed = 8;
+    enemy.baseSpeed = 12;
     enemy.gravity = 1;
     enemy.maxHp = 15;
     enemy.hp = 15;
@@ -68,6 +68,26 @@ genericEnemy enemyDirector::spawnSlimeBoss()
 //Generic enemy movement - periodically jump towards player
 int genericEnemy::updateMovement(float playerX, float playerY)
 {   
+    switch(eType)
+    {
+        case ET_SLIME:
+        {
+            slimeMovement(playerX, playerY);
+        }break;
+
+        case ET_SLIMEBOSS:
+        {
+            slimeBossMovement(playerX, playerY);
+        }break;
+
+        default:break;
+    }
+    return 0;
+}
+
+//slime movement AI
+void genericEnemy::slimeMovement(float playerX, float playerY)
+{
     //jump based on the timer
     if(this->jumpStock == this->jumpMax && jumpTimer >= jumpTimerThresh)
     {
@@ -99,7 +119,134 @@ int genericEnemy::updateMovement(float playerX, float playerY)
     //update position
     this->hitbox.x += this->speedX;
     this->hitbox.y += this->speedY;
-    return 0;
+}
+
+//slime boss movement AI
+void genericEnemy::slimeBossMovement(float playerX, float playerY)
+{
+    //state, proximity based movement
+    //if far from player (based on X direction) when timer elapses, big jump w/projectile, and then 3 normal jumps to catch up
+    //if close to player, just normal jump
+
+    //determine x direction movement
+    dirX = getRelativeDir(this->hitbox.x, playerX);
+    
+    switch(moveState)
+    {
+        //normal movement 
+        case 0:
+        {
+            //timer elapsed
+            if(this->jumpStock == this->jumpMax && jumpTimer >= jumpTimerThresh + rand()%60)
+            {
+                std::cout<<"MOVESTATE: "<<moveState<<" distance: "<<abs(playerX - this->hitbox.x)<<std::endl;    
+                //randomise jump height a bit
+                this->jumpHeight = -1*(10 + rand()%3);
+                //consume jumpstock
+                this->jumpStock -= 1;
+                this->setSpeedY(this->jumpHeight);
+                //state transition
+                intState = cappedSubtraction(intState, 1, 0);
+                //reset timer
+                this->jumpTimer = 0;
+                
+                //ready for the big jump
+                if(intState == 0 && abs(playerX - this->hitbox.x) > 100){
+                    moveState = 1;
+                    intState = 0;
+                    break;
+                }
+            }
+
+            //if in the air, move x
+            if(isGrounded){
+                //adjust speed to dir
+                this->setSpeedX(0);
+            }else{
+                this->setSpeedX(dirX*this->baseSpeed);
+            }
+            //update timer
+            jumpTimer = MIN(jumpTimer+1, jumpTimerThresh+1);
+        }break;
+
+        //state 1 -> handle big jump
+        case 1:
+        {
+            switch(intState)
+            {
+                case 0://first stage, -> jump
+                {
+                    jumpHeight = -1*(20);
+                    this->setSpeedX(dirX*baseSpeed);
+                    // consume jumpstock
+                    jumpStock -= 1;//normal
+                    setSpeedY(this->jumpHeight);//reset in normal mode
+                    // transition
+                    intState = 1;//safe
+                }break;
+
+                case 1://second stage -> wait at top of the jump (positive ySpeed)
+                {
+                    if(speedY > 0)
+                    {
+                        setSpeedX(0);
+                        setSpeedY(0);//stop movement!
+                        //wait for half a second
+                        timerGoal = loopedAddition(frameCount, 15, 0, frameMax);//just the timer
+                        intState = 2;//transition
+                    }
+
+                }break;
+
+                case 2://third stage -> wait for timer to elapse then big speed downwards
+                {
+                    setSpeedX(0);
+                    setSpeedY(0);//stop movement!
+                    if(frameCount == timerGoal){
+                        setSpeedY(20);
+                        //transition
+                        intState = 3;
+                    }//else keep waiting
+
+                }break;
+
+                case 3:{//third stage -> on grounded, spawn projectiles and decrement movestate
+                    setSpeedX(0);//slam striaght down
+                    if(isGrounded)
+                    {
+                        //spawn enemy projectiles
+                        std::cout<<"SPAWN 'EM"<<std::endl;
+                        moveState = 0;
+                        intState = 3;
+                        //reset jump timer
+                        // jumpTimer = 0;
+                    }
+                }break;
+                default:break;
+            }
+            
+        }break;
+        default:
+        {
+            std::cout<<"DEFAULT SLIME BOSS MOVEMENT\n";            
+        }break;
+    }
+
+    //get previous position
+    this->prevX = this->hitbox.x;
+    this->prevY = this->hitbox.y;
+
+    //apply gravity
+    if(!(moveState == 1 && intState == 2)){
+        //apply gravity
+        this->applyGravity(this->gravity);
+    }else{
+        std::cout<<"IGNORING GRAVITY\n";
+    }
+
+    //update position
+    this->hitbox.x += this->speedX;
+    this->hitbox.y += this->speedY;
 }
 
 int genericEnemy::onHit()
@@ -143,104 +290,6 @@ void genericEnemy::slimeBossAI()
 
 int bossSlime::updateMovement(float playerX, float playerY)
 {   
-    //state, proximity based movement
-    //if far from player (based on X direction) when timer elapses, big jump w/projectile, and then 3 normal jumps to catch up
-    //if close to player, just normal jump
     
-    //state 3 -> handle big jump
-    if(moveState == 3){
-        
-        switch(intState)
-        {
-            case 0://first stage, -> jump
-            {
-                jumpHeight = -1*(200);
-                //consume jumpstock
-                jumpStock -= 1;
-                setSpeedY(this->jumpHeight);
-                //transition
-                intState = 1;
-            }break;
-
-            case 1://second stage -> wait at top of the jump (positive ySpeed)
-            {
-                if(speedY > 0)
-                {
-                    intState = 2;
-                    setSpeedY(0);//stop movement!
-                    //wait for half a second
-                    timerGoal = loopedAddition(frameCount, 30, frameMax, 0);
-                }
-
-            }break;
-
-            case 2://third stage -> wait for timer to elapse then big speed downwards
-            {
-                if(frameCount == timerGoal){
-                    setSpeedY(30);
-                    //transition
-                    intState = 3;
-                }//else keep waiting
-
-            }break;
-
-            case 3:{//third stage -> on grounded, spawn projectiles and decrement movestate
-
-                if(isGrounded)
-                {
-                    //spawn enemy projectiles
-                    std::cout<<"SPAWN 'EM"<<std::endl;
-                    moveState -= 1;
-                    intState = 0;
-                }
-            }break;
-            default:break;
-        }
-    }
-    //else-> wait for jump timer and stock and normal jump
-
-    //timer elapsed
-    if(this->jumpStock == this->jumpMax && jumpTimer >= jumpTimerThresh + rand()%60)
-    {
-        std::cout<<"MOVESTATE: "<<moveState<<" distance: "<<abs(playerX - this->hitbox.x)<<std::endl;
-        //ready for the big jump
-        if(moveState == 0 && abs(playerX - this->hitbox.x) > 200){
-            moveState = 3;
-        }
-        //randomise jump height a bit
-        this->jumpHeight = -1*(90 + rand()%3);
-        //consume jumpstock
-        this->jumpStock -= 1;
-        this->setSpeedY(this->jumpHeight);
-
-        //state transition
-        moveState = cappedSubtraction(moveState, 1, 0);
-        //reset timer
-        this->jumpTimer = 0;
-        //determine x direction movement
-        this->dirX = getRelativeDir(this->hitbox.x, playerX);
-    }
-
-    //if in the air, move x
-    if(abs(this->speedY) > 0 && moveState < 3){
-        //adjust speed to dir
-        this->setSpeedX(dirX*this->baseSpeed);
-    }else{
-        this->setSpeedX(0);
-    }
-
-    //update timer
-    jumpTimer = MIN(jumpTimer+1, jumpTimerThresh+1);
-
-    //apply gravity
-    this->applyGravity(this->gravity);
-
-    //get previous position
-    this->prevX = this->hitbox.x;
-    this->prevY = this->hitbox.y;
-
-    //update position
-    this->hitbox.x += this->speedX;
-    this->hitbox.y += this->speedY;
     return 0;
 }

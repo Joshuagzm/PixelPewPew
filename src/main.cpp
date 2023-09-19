@@ -88,7 +88,7 @@ int main () {
     int killCount {0};
 
     //TEMP
-    genericEnemy slimeBoss;
+    bossSlime slimeBoss;
     bool bossSpawned{false};
 
     //GAME LOOP
@@ -351,8 +351,9 @@ int main () {
             for(auto& foe: enemyVector){
                 foe.onTick();
                 foe.updateMovement(protag.hitbox.x,protag.hitbox.y);
-                for(auto& plat: platformVector){
-                    foe.collisionHandler(&plat);
+                //check collision between the player and entities within its grid cell
+                for(const auto& closeEntity: foe.checkCloseEntities()){
+                    foe.collisionHandler(closeEntity);
                 }
                 //set the destruction bit
                 if( foe.hitbox.y > stageHeight)

@@ -25,10 +25,16 @@ class genericEnemy: public entity
         ~genericEnemy() override{}
         int ID;
         virtual int updateMovement(float playerX, float playerY);
+        void slimeMovement(float playerX, float playerY);
+        void slimeBossMovement(float playerX, float playerY);
         void slimeBossAI();
         int onHit() override;
         void onDeath() override;
-        enemyType eType{ET_MISC};
+        enemyType eType{ET_SLIME};
+        //probably private
+        int moveState{0};//big state
+        int intState{0};//intermediate state
+        int timerGoal{0};//a timer goal
 
         //serialisation function
         template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -61,15 +67,12 @@ class bossSlime : public genericEnemy
         ~bossSlime() override{}
         bossSlime()
         {
-            jumpTimerThresh = 120;//jump every 2 seconds give or take a second
+            jumpTimerThresh = 90;//jump every 1.5 seconds give or take a second
             eType = ET_SLIMEBOSS;
         }
 
         int updateMovement(float playerX, float playerY) override;
-        //probably private
-        int moveState{0};//big state
-        int intState{0};//intermediate state
-        int timerGoal{0};//a timer goal
+        
 
 
         //serialisation function
@@ -95,7 +98,7 @@ class enemyDirector: public entity
         //methods
         genericEnemy spawnCommand();
         void tickUpdate(std::deque<genericEnemy>& enemyList);
-        genericEnemy spawnSlimeBoss();
+        bossSlime spawnSlimeBoss();
 };
 
 #endif
