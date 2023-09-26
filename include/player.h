@@ -6,6 +6,7 @@
 #include <vector>
 #include <cmath>
 #include <thread>
+#include <list>
 #include "include/entity.h"
 #include "include/functs.h"
 
@@ -48,12 +49,12 @@ class player: public entity {
 
     //class methods
     int checkMoveInput(); //checks user inputs
-    int checkAttackInput(std::deque<projectileAttack>* attackVector);
+    int checkAttackInput(std::list<projectileAttack>* attackVector);
     int moveX(int tickCounter);
     int moveY();
     int screenBorder(int screenHeight, int screenWidth);//prevents movement outside of the screen
     int initLoop();//initialises values at beginning of loop
-    int fireProjectile(std::deque<projectileAttack>* attackVector);
+    int fireProjectile(std::list<projectileAttack>* attackVector);
     int spawnProjectile();
 
     template<class Archive> void serialize(Archive & ar, const unsigned int version)

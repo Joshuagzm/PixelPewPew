@@ -53,7 +53,7 @@ int main () {
 
     //SERVER ONLY
     //initialise enemy director - THREAD1
-    enemyDirector enemyDir;
+    enemyDirector enemyDir(&enemyVector);
     enemyDir.spawnThresh = 5*targetFPS;
     enemyDir.spawnTimer = enemyDir.spawnThresh-targetFPS;
     enemyDir.spawnableHeight = stageHeight;
@@ -88,8 +88,7 @@ int main () {
     int killCount {0};
 
     //TEMP
-    bossSlime slimeBoss;
-    bool bossSpawned{false};
+    bossSlime slimeBoss(&enemyDir);
 
     //GAME LOOP
     while (WindowShouldClose() == false && gameExitConfirmed == false){
@@ -164,7 +163,7 @@ int main () {
                             case M_PROJ:
                             {
                                 //Overwrite the existing external projectiles vector
-                                std::deque<projectileAttack> tempAttackVector;
+                                std::list<projectileAttack> tempAttackVector;
                                 iarchive >> tempAttackVector;
                                 extAttackVector = tempAttackVector;
                             }break;
@@ -172,7 +171,7 @@ int main () {
                             case M_ENEMY:
                             {
                                 //overwrite existing enemyvector
-                                std::deque<genericEnemy> tempEnemyVector;
+                                std::list<genericEnemy> tempEnemyVector;
                                 iarchive >> enemyVector;
 
                             }break;
@@ -317,36 +316,71 @@ int main () {
                 }
             }
 
+            //check enemyCollisions
+
+
             //ENEMY DIRECTOR
             if(peerType != CLIENT){
-                enemyDir.tickUpdate(enemyVector);
+                enemyDir.tickUpdate();
 
                 //spawn boss?
                 if(killCount >= winCount && bossSpawned == false){
                     slimeBoss = enemyDir.spawnSlimeBoss();
                     enemyVector.push_back(slimeBoss);
-                    enemyIt = std::prev(enemyVector.end());
+                    bSlimePtr = &enemyVector.back();
                     bossSpawned = true;
                 }
 
                 if(bossSpawned)
                 {
-                    if(enemyIt->isAlive == false){
+                    if(bSlimePtr->hitbox.width != 80){
+                        std::cout<<"SOMETHING BAD HAPPENED\n";
+                    }
+                    if(bSlimePtr->isAlive == false){
                         requestState = WIN;
                         bossSpawned = false;
                     } 
                 }
             }
 
-
-
             //update enemy position
             for(auto& foe: enemyVector){
+                //pretty fundamental issue here: 
                 foe.onTick();
                 foe.updateMovement(protag.hitbox.x,protag.hitbox.y);
                 //check collision between the player and entities within its grid cell
-                for(const auto& closeEntity: foe.checkCloseEntities()){
-                    foe.collisionHandler(closeEntity);
+                for(auto& closeEntity: foe.checkCloseEntities()){
+
+                    bool exitFlag {false};
+                    //custom collision handler for "projectile" enemy
+                    if(foe.eType == ET_ACCELPROJ_H)
+                    {
+
+                        //check collision event
+                        if(CheckCollisionRecs(foe.hitbox, closeEntity->hitbox)){
+                            switch(closeEntity->alignment){
+                                case entity::PLAYER:
+                                {
+                                    //hit the player
+                                    foe.applyDamage(closeEntity, &foe);
+                                }break;
+
+                                case entity::OBJECT:
+                                {
+                                }break;
+
+                                default:break;
+                            }
+                        }
+                    }else{
+                        foe.collisionHandler(closeEntity);
+                    }
+
+                    //escape
+                    if(exitFlag){
+                        exitFlag = false;
+                        break;
+                    }
                 }
                 //set the destruction bit
                 if( foe.hitbox.y > stageHeight)
@@ -389,28 +423,34 @@ int main () {
             }
 
             //CLEANUP//
-            std::deque<genericEnemy>::iterator it = enemyVector.begin();
-            while(it != enemyVector.end())
-            {
-                if(!it->isAlive)
-                {
-                    it->removeGridOccupation(it->gridCellsCurrent);
-                    it = enemyVector.erase(it);
-                }else{
-                    ++it;
+
+            //clear dead enemies
+            auto enemiesDeleted = std::erase_if(enemyVector, [](genericEnemy ent) {
+                if(!ent.isAlive){
+                    ent.removeGridOccupation(ent.gridCellsCurrent);
+                    return true;
                 }
+                return false;
+            });
+
+            if(enemiesDeleted > 0)
+            {
+                std::cout<<enemiesDeleted<<" enemies deleted\n";
             }
 
-            std::deque<projectileAttack>::iterator atkIter = attackVector.begin();
-            while(atkIter != attackVector.end())
-            {
-                if(!atkIter->isAlive)
-                {
-                    atkIter->removeGridOccupation(atkIter->gridCellsCurrent);
-                    atkIter = attackVector.erase(atkIter);
-                }else{
-                    ++atkIter;
+            //clear dead projectiles
+            auto projDeleted = std::erase_if(attackVector, [](projectileAttack ent) {
+                if(!ent.isAlive){
+                    ent.removeGridOccupation(ent.gridCellsCurrent);
+                    return true;
                 }
+                return false;
+            });
+
+            //DEBUG
+            if(projDeleted > 0)
+            {
+                std::cout<<projDeleted<<" projectiles deleted\n";
             }
         }
 
@@ -615,6 +655,7 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
         registerPlatform(&platformVector, 0,stageHeight - 10,stageWidth,10);    //the floor
         *winCount = 2;
         *killCount = 0;
+        bossSpawned = false;
         protag->initPlayer();
     }
     //draw - order of drawing determines layers
@@ -1051,4 +1092,13 @@ void createInputBox(Rectangle inputBox, Color& borderColor, Color& fillColor, Co
     DrawRectangleRec(inputBox, fillColor);
     DrawRectangleLines(inputBox.x, inputBox.y, inputBox.width, inputBox.height, borderColor);
     DrawText(tempString.c_str(), inputBox.x + 10, inputBox.y + 8, textSize, textColor);
+}
+
+//predicate for clearing dead entities from the list
+bool isEntityDead(entity ent)
+{
+    if(ent.isAlive){
+        return false;
+    }
+    return true;
 }

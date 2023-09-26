@@ -161,22 +161,13 @@ int entity::collisionHandler(entity * obj){
                 default:
                     std::cout<<"COLLISION ORDER FAILED"<<std::endl;
             }
-        //Touch Damage
-        }if (obj->isTouchDamage){
-            if(!this->isInvulnerable){
-                --this->hp;
-                this->invulnerableTimer = targetFPS*1.5;
-                this->isInvulnerable = true;
-                //calculate the direction of recoil
-                if(obj->hitbox.x + obj->halfWidth > this->hitbox.x + this->halfWidth){
-                    this->inertiaX -= 10;
-                }else{
-                    this->inertiaX += 10;
-                }
-                //always recoil upwards
-                this->inertiaY -= 12;
-            }
         }
+
+        //touch damage function
+        if (obj->isTouchDamage){
+            this->applyDamage(this, obj);
+        }
+
         //check if collision is remaining, if not, then automatically pass
         entity_collision = CheckCollisionRecs(obj->hitbox, this->hitbox);
         //queue operations: X movement and Y movement
@@ -206,6 +197,23 @@ int entity::collisionHandler(entity * obj){
     }
 
 
+}
+
+void entity::applyDamage(entity* damagedEnt, entity* objEnt)
+{
+    if(!damagedEnt->isInvulnerable){
+        --damagedEnt->hp;
+        damagedEnt->invulnerableTimer = targetFPS*1.5;
+        damagedEnt->isInvulnerable = true;
+        //calculate the direction of recoil
+        if(objEnt->hitbox.x + objEnt->halfWidth > damagedEnt->hitbox.x + damagedEnt->halfWidth){
+            damagedEnt->inertiaX -= 10;
+        }else{
+            damagedEnt->inertiaX += 10;
+        }
+        //always recoil upwards
+        damagedEnt->inertiaY -= 12;
+    }
 }
 
 bool entity::checkInSquare(int* squareWidth, int* squareHeight)

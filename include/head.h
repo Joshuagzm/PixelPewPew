@@ -1,6 +1,16 @@
 #ifndef HEAD_H
 #define HEAD_H
 
+//BUG NOTES
+/*
+Mismatch between grid and the entity list
+ - Enemies appear but are unhittable -> means that there is something wrong with the grid
+ - There are sometimes phantom enemies that do not move despite a ghost sprite moving
+ - The hittable invisible phantom enemies report a "default hit" meaning that they are of a base entity class
+ - This points to potential issues with how the registration and update of entities to the grid happen
+ - Replicated at 13 alive entities by letting 2 entities spawn and killing them in reverse spawn order
+*/
+
 #include <iostream>
 #include <raylib.h>
 #include <vector>
@@ -15,8 +25,11 @@
 #include "include/stage.h"
 #include "include/text.h"
 #include <queue>
+#include <list>
+#include <deque>
 #include <mutex>
 #include <string>
+#include <algorithm> 
 
 #include "include/asio_test.h"
 
@@ -40,23 +53,24 @@ int stageWidth{1800};
 const double textMeasureFactor {3.0};
 const uint32_t headerPadSize{10};
 
+bool bossSpawned{false};
 bool collision;
 networkClass peerType {DEFAULT};
 screen prevState {DUMMY};
 screen gameState {TITLE};
 screen requestState {DUMMY};
 
-std::deque<entity> platformVector;
-std::deque<projectileAttack> attackVector;
-std::deque<genericEnemy> enemyVector;
-std::deque<entity*> playerVector;
+std::list<entity> platformVector;
+std::list<projectileAttack> attackVector;
+std::list<genericEnemy> enemyVector;
+std::list<entity*> playerVector;
 
 //tracking
-std::deque<genericEnemy>::iterator enemyIt;
+genericEnemy* bSlimePtr;
 
 //vectors for external object (multiplayer) - no collision handling (yet)
-std::deque<projectileAttack> extAttackVector;
-std::deque<entity*> extPlayerVector;
+std::list<projectileAttack> extAttackVector;
+std::list<entity*> extPlayerVector;
 
 bool gameReplay {true};
 bool gamePaused {true};
@@ -77,6 +91,9 @@ networkState nState {N_DISCONNECTED};
 std::mutex nStateMutex;
 std::deque<std::string> receivedDataQueue;
 std::mutex queueMutex;
+
+//predicates
+bool isEntityDead(entity ent);
 
 //Level module declarations
 void level1(player* protag, int* killCount, int* winCount, Camera2D* camera);

@@ -4,8 +4,8 @@
 genericEnemy enemyDirector::spawnCommand()
 {
     //spawn an enemy in the upper third of the screen of some default size
-    genericEnemy enemy;
-    enemy.hitbox.x = 100 + rand()%(spawnableWidth - 100);
+    genericEnemy enemy(this);
+    enemy.hitbox.x = 100 + rand()%(spawnableWidth - 800);
     enemy.hitbox.y = 100 + rand()%(spawnableHeight - 100);
 
     std::cout<<"Spawning enemy at ["<<enemy.hitbox.x<<","<<enemy.hitbox.y<<"]"<<std::endl;
@@ -34,12 +34,13 @@ genericEnemy enemyDirector::spawnCommand()
 bossSlime enemyDirector::spawnSlimeBoss()
 {
     //spawn an enemy in the upper third of the screen of some default size
-    bossSlime enemy;
-    enemy.hitbox.x = 50;
-    enemy.hitbox.y = 200;
+    bossSlime enemy(this);
+
 
     enemy.hitbox.height = 80;
     enemy.hitbox.width = 80;
+    enemy.hitbox.x = 50;
+    enemy.hitbox.y = 500 - enemy.hitbox.height;
 
     enemy.halfheight = enemy.hitbox.height/2;
     enemy.halfWidth = enemy.hitbox.width/2;
@@ -78,9 +79,33 @@ int genericEnemy::updateMovement(float playerX, float playerY)
             slimeBossMovement(playerX, playerY);
         }break;
 
-        default:break;
+        case ET_ACCELPROJ_H:
+        {
+            accelProjHMovement();
+        }break;
+
+        default:
+        {
+            std::cout<<"MOVEMENT NOT HANDLED\n";   
+        }break;
     }
     return 0;
+}
+
+//horizontally travelling accelerating projectile
+void genericEnemy::accelProjHMovement()
+{
+    //quadratic speed scaling
+    this->speedX += 1*this->faceDirectionX;
+
+    //update position
+    this->hitbox.x += this->speedX;
+
+    //check for invalid position
+    if(!checkInBounds(this->hitbox.x, -1*this->hitbox.width, static_cast<float>(2000)) || !checkInBounds(this->hitbox.y, -1*this->hitbox.height, static_cast<float>(2000)))
+    {
+        this->isAlive = false;
+    }
 }
 
 //slime movement AI
@@ -214,10 +239,44 @@ void genericEnemy::slimeBossMovement(float playerX, float playerY)
                     {
                         //spawn enemy projectiles
                         std::cout<<"SPAWN 'EM"<<std::endl;
+                        //set up projectile
+                        genericEnemy proj(enemyDir);
+                        //spawn shockwave at feet
+                        proj.hitbox.height = 50;
+                        proj.hitbox.width = 20;
+
+                        proj.halfheight = proj.hitbox.height/2;
+                        proj.halfWidth = proj.hitbox.width/2;
+
+                        //initial stats
+                        proj.speedX = 1;
+                        proj.speedY = 1;
+                        proj.baseSpeed = 2;
+                        proj.gravity = 1;
+                        proj.maxHp = 999;
+                        proj.hp = 999;
+
+                        proj.isSolid = false;
+                        proj.isTouchDamage = true;
+
+                        proj.alignment = MONSTER;
+                        proj.entColor = MAROON;
+                        proj.eType = ET_ACCELPROJ_H;
+
+                        proj.hitbox.y = this->hitbox.y + (this->hitbox.height - proj.hitbox.height);
+                        //spawn left side
+                        proj.faceDirectionX = left;
+                        proj.hitbox.x = this->hitbox.x - proj.hitbox.width;
+                        enemyDir->spawnGenericEnemy(proj);
+
+                        //spawn right side
+                        proj.faceDirectionX = right;
+                        proj.hitbox.x = this->hitbox.x + this->hitbox.width;
+                        enemyDir->spawnGenericEnemy(proj);
+
+                        //transition
                         moveState = 0;
                         intState = 3;
-                        //reset jump timer
-                        // jumpTimer = 0;
                     }
                 }break;
                 default:break;
@@ -238,8 +297,6 @@ void genericEnemy::slimeBossMovement(float playerX, float playerY)
     if(!(moveState == 1 && intState == 2)){
         //apply gravity
         this->applyGravity(this->gravity);
-    }else{
-        std::cout<<"IGNORING GRAVITY\n";
     }
 
     //update position
@@ -265,15 +322,20 @@ void genericEnemy::onDeath()
 }
 
 //function to update the enemy director on each tick
-void enemyDirector::tickUpdate(std::deque<genericEnemy>& enemyList)
+void enemyDirector::tickUpdate()
 {
     //update spawn timer
     this->spawnTimer += 1;
     if(this->spawnTimer >= this->spawnThresh)
     {
-        enemyList.push_back(this->spawnCommand());
+        enemyList->push_back(this->spawnCommand());
         this->spawnTimer = 0;
     }
+}
+
+void enemyDirector::spawnGenericEnemy(genericEnemy enemy)
+{
+    enemyList->push_back(enemy);
 }
 
 //AI piece for the first stage boss

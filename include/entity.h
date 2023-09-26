@@ -11,6 +11,7 @@
 #include <set>
 #include <algorithm>
 #include <string>
+#include <list>
 
 //uuid generation
 #include <boost/uuid/uuid.hpp>              //uuid class
@@ -102,8 +103,8 @@ class entity {
 
         //class methods
         int applyGravity(int gravity);
-        int collisionHandler(entity * plat);
-        int collisionOrder(float * x, float * y);
+        int collisionHandler(entity* plat);
+        int collisionOrder(float* x, float* y);
 
         //set speed methods
         int setSpeedY(int modifier);
@@ -123,6 +124,7 @@ class entity {
         int removeGridOccupation(pairSetType cellsToRemove);
         int addGridOccupation(pairSetType cellsToAdd);
         void killEntity();
+        void applyDamage(entity* damagedEnt, entity* objEnt);
         
         //virtual functions
         virtual int onHit();

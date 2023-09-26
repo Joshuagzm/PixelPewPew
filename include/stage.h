@@ -11,7 +11,7 @@
 #include "include/grid.h"
 
 //register platform
-int registerPlatform(std::deque<entity>* platformVector, float platX, float platY, float platWidth, float platHeight);
+int registerPlatform(std::list<entity>* platformVector, float platX, float platY, float platWidth, float platHeight);
 //clear platforms
-int resetWorld(std::deque<entity>* platformVector, std::deque<genericEnemy>* enemyVector, std::deque<projectileAttack>* attackVector, std::unordered_map<std::pair<int, int>, gridCell>& grid);
+int resetWorld(std::list<entity>* platformVector, std::list<genericEnemy>* enemyVector, std::list<projectileAttack>* attackVector, std::unordered_map<std::pair<int, int>, gridCell>& grid);
 #endif

@@ -6,27 +6,25 @@
 #include <vector>
 #include <cmath>
 #include <thread>
+#include <list>
 #include "include/functs.h"
 #include "include/entity.h"
 
-enum enemyType {ET_SLIME, ET_SLIMEBOSS, ET_MISC};
+enum enemyType {ET_SLIME, ET_SLIMEBOSS, ET_ACCELPROJ_H, ET_MISC};
+class enemyDirector;
 
 class genericEnemy: public entity
 {
-    protected:
-        int dirX = 0;
-        int dirY = 0;
-        int jumpTimer = 0;
-        int jumpTimerThresh = 90;
-        int jumpHeight = -15;
-        
-
     public:
+        genericEnemy(enemyDirector* enemyDir) :
+            enemyDir(enemyDir){};
+        genericEnemy(){};
         ~genericEnemy() override{}
         int ID;
         virtual int updateMovement(float playerX, float playerY);
         void slimeMovement(float playerX, float playerY);
         void slimeBossMovement(float playerX, float playerY);
+        void accelProjHMovement();
         void slimeBossAI();
         int onHit() override;
         void onDeath() override;
@@ -45,6 +43,14 @@ class genericEnemy: public entity
             ar & isTouchDamage;
             ar & alignment;
         }
+
+    protected:
+        int dirX = 0;
+        int dirY = 0;
+        int jumpTimer = 0;
+        int jumpTimerThresh = 90;
+        int jumpHeight = -15;
+        enemyDirector* enemyDir;
 };
 
 class slime : public genericEnemy
@@ -65,13 +71,15 @@ class bossSlime : public genericEnemy
 {
     public:
         ~bossSlime() override{}
-        bossSlime()
+        bossSlime(enemyDirector* enemyDir) :
+        genericEnemy(enemyDir)
         {
             jumpTimerThresh = 90;//jump every 1.5 seconds give or take a second
             eType = ET_SLIMEBOSS;
         }
 
         int updateMovement(float playerX, float playerY) override;
+        genericEnemy createShockwave();
         
 
 
@@ -87,6 +95,13 @@ class bossSlime : public genericEnemy
 class enemyDirector: public entity
 {
     public:
+        enemyDirector(std::list<genericEnemy>* enemyList) : 
+        enemyList(enemyList)
+        {
+            if (!enemyList) {
+                throw std::invalid_argument("enemy list cannot be nullptr");
+            }
+        };
         //variables
         int spawnTimer;
         int spawnThresh;
@@ -97,8 +112,13 @@ class enemyDirector: public entity
 
         //methods
         genericEnemy spawnCommand();
-        void tickUpdate(std::deque<genericEnemy>& enemyList);
+        void tickUpdate();
         bossSlime spawnSlimeBoss();
+        void spawnGenericEnemy(genericEnemy enemy);
+    
+    private:
+        std::list<genericEnemy>* enemyList;
+
 };
 
 #endif

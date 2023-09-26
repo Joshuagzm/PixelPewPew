@@ -13,10 +13,12 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/deque.hpp>
+#include <boost/serialization/list.hpp>
 #include <boost/serialization/set.hpp>
 #include <string>
 #include <queue>
 #include <deque>
+#include <list>
 
 
 //initialise system variables

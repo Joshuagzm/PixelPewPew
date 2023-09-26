@@ -83,7 +83,7 @@ int player::checkMoveInput(){
     return 0;
 }
 
-int player::checkAttackInput(std::deque<projectileAttack>* attackVector){
+int player::checkAttackInput(std::list<projectileAttack>* attackVector){
     //firing
     if(IsKeyDown(KEY_Z)){
         this->fireProjectile(attackVector);
@@ -140,7 +140,7 @@ int player::screenBorder(int screenHeight, int screenWidth)
     return 0;
 }
 
-int player::fireProjectile(std::deque<projectileAttack>* attackVector){
+int player::fireProjectile(std::list<projectileAttack>* attackVector){
     //function to manage firing a basic projectile
     //Allow certain number of shots on screen
     //Cooldown management
