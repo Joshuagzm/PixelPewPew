@@ -152,7 +152,7 @@ void genericEnemy::slimeBossMovement(float playerX, float playerY)
     //if close to player, just normal jump
 
     //determine x direction movement
-    dirX = getRelativeDir(this->hitbox.x, playerX);
+    
     
     switch(moveState)
     {
@@ -162,7 +162,7 @@ void genericEnemy::slimeBossMovement(float playerX, float playerY)
             //timer elapsed
             if(this->jumpStock == this->jumpMax && jumpTimer >= jumpTimerThresh + rand()%60)
             {
-                std::cout<<"MOVESTATE: "<<moveState<<" distance: "<<abs(playerX - this->hitbox.x)<<std::endl;    
+                dirX = getRelativeDir(this->hitbox.x, playerX);
                 //randomise jump height a bit
                 this->jumpHeight = -1*(10 + rand()%3);
                 //consume jumpstock
@@ -199,21 +199,29 @@ void genericEnemy::slimeBossMovement(float playerX, float playerY)
             {
                 case 0://first stage, -> jump
                 {
+                    //calculate direction
+                    dirX = getRelativeDir(this->hitbox.x, playerX);
+
+                    //set velocity
                     jumpHeight = -1*(20);
                     this->setSpeedX(dirX*baseSpeed);
+                    setSpeedY(this->jumpHeight);
+
                     // consume jumpstock
-                    jumpStock -= 1;//normal
-                    setSpeedY(this->jumpHeight);//reset in normal mode
+                    jumpStock -= 1;
+
                     // transition
-                    intState = 1;//safe
+                    intState = 1;
                 }break;
 
                 case 1://second stage -> wait at top of the jump (positive ySpeed)
                 {
                     if(speedY > 0)
                     {
+                        //stop movement!
                         setSpeedX(0);
-                        setSpeedY(0);//stop movement!
+                        setSpeedY(0);
+                        
                         //wait for half a second
                         timerGoal = loopedAddition(frameCount, 15, 0, frameMax);//just the timer
                         intState = 2;//transition
