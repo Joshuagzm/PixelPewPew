@@ -2,14 +2,7 @@
 #define HEAD_H
 
 //BUG NOTES
-/*
-Mismatch between grid and the entity list
- - Enemies appear but are unhittable -> means that there is something wrong with the grid
- - There are sometimes phantom enemies that do not move despite a ghost sprite moving
- - The hittable invisible phantom enemies report a "default hit" meaning that they are of a base entity class
- - This points to potential issues with how the registration and update of entities to the grid happen
- - Replicated at 13 alive entities by letting 2 entities spawn and killing them in reverse spawn order
-*/
+
 
 #include <iostream>
 #include <raylib.h>
@@ -188,4 +181,14 @@ Boss ideas
   - Danger Zones
   - Objective protection
 
+*/
+
+/*
+Mismatch between grid and the entity list
+ - Enemies appear but are unhittable -> means that there is something wrong with the grid
+ - There are sometimes phantom enemies that do not move despite a ghost sprite moving
+ - The hittable invisible phantom enemies report a "default hit" meaning that they are of a base entity class
+ - This points to potential issues with how the registration and update of entities to the grid happen
+ - Replicated at 13 alive entities by letting 2 entities spawn and killing them in reverse spawn order
+ - Resolved. Cause: Pointer invalidation due to removal of entity in the middle of deque
 */

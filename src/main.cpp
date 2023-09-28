@@ -244,6 +244,9 @@ int main () {
 
         //Code that should run during gameplay
         if(gamePaused != true){
+            //update spawnable range
+            enemyDir.spawnableHeight = stageHeight;
+            enemyDir.spawnableWidth = stageWidth;
             //Initialisations
             protag.initLoop();
             protag.onTick();
@@ -633,16 +636,20 @@ void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width,
     //set offset to clamp to the world edge
     Vector2 camTopLeft =       GetWorldToScreen2D((Vector2){0,0}, *camera);
     Vector2 camBottomRight =   GetWorldToScreen2D((Vector2){static_cast<float>(stageWidth),static_cast<float>(stageHeight)}, *camera);
-    if(camTopLeft.x > 0){          camera->offset.x = (camera->offset.x - camTopLeft.x);              }
-    if(camTopLeft.y > 0){          camera->offset.y = (camera->offset.y - camTopLeft.y);              }
-    if(camBottomRight.x < width){  camera->offset.x = camera->offset.x + (width - camBottomRight.x);  }
-    if(camBottomRight.y < height){ camera->offset.y = camera->offset.y + (height - camBottomRight.y); }
+    if(camTopLeft.x > 0)
+        camera->offset.x = (camera->offset.x - camTopLeft.x);
+    if(camTopLeft.y > 0)
+        camera->offset.y = (camera->offset.y - camTopLeft.y);
+    if(camBottomRight.x < width)
+        camera->offset.x = camera->offset.x + (width - camBottomRight.x);
+    if(camBottomRight.y < height)
+        camera->offset.y = camera->offset.y + (height - camBottomRight.y);
 }
 
 void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
     //SCREEN ENTRY
     if(prevState != gameState){
-        stageWidth = 2*screenHeight;
+        stageWidth = 1800;
         stageHeight = screenHeight;
         resetWorld(&platformVector, &enemyVector, &attackVector, gridContainer);
         registerPlatform(&platformVector, 20,100,400,20);
