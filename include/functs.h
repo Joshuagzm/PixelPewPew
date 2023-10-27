@@ -26,7 +26,7 @@ const int screenWidth {800};
 const int screenHeight {600};
 const int targetFPS {60};
 const std::string emptyUUID{"00000000-0000-0000-0000-000000000000"};
-enum screen {EXITGAME, TITLE, LEVEL1, LEVEL2, LEVEL3, WIN, DEAD, CHAT, NETCONF, DUMMY};
+enum screen {EXITGAME, TITLE, LEVEL1, LEVEL1BOSS, LEVEL2, LEVEL3, WIN, DEAD, CHAT, NETCONF, DUMMY};
 enum eventType {E_HIT, E_DIE, E_SCORE, E_SCREEN, E_MISC};
 enum networkClass {DEFAULT, CLIENT, SERVER};
 enum messageType {M_MISC, M_PLAYER, M_STR, M_PROJ, M_ENEMY, M_EVENT};

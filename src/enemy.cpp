@@ -36,10 +36,9 @@ bossSlime enemyDirector::spawnSlimeBoss()
     //spawn an enemy in the upper third of the screen of some default size
     bossSlime enemy(this);
 
-
     enemy.hitbox.height = 80;
     enemy.hitbox.width = 80;
-    enemy.hitbox.x = 50;
+    enemy.hitbox.x = 700;
     enemy.hitbox.y = 500 - enemy.hitbox.height;
 
     enemy.halfheight = enemy.hitbox.height/2;

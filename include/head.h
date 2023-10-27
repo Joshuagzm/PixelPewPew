@@ -17,6 +17,7 @@
 #include "include/grid.h"
 #include "include/stage.h"
 #include "include/text.h"
+#include "include/interactables.h"
 #include <queue>
 #include <list>
 #include <deque>
@@ -85,11 +86,15 @@ std::mutex nStateMutex;
 std::deque<std::string> receivedDataQueue;
 std::mutex queueMutex;
 
+//TEMP
+
+
 //predicates
 bool isEntityDead(entity ent);
 
 //Level module declarations
-void level1(player* protag, int* killCount, int* winCount, Camera2D* camera);
+void level1(player* protag, int* killCount, int* winCount, Camera2D* camera, stageDoor& nextStageDoor, networkInstance& networkHandler);
+void level1Boss(player* protag, int* killCount, int* winCount, Camera2D* camera, stageDoor& nextStageDoor, networkInstance& networkHandler);
 void levelDead();
 void levelMainMenu();
 void levelWin();

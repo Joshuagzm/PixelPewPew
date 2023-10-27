@@ -82,6 +82,9 @@ int main () {
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
 
+    stageDoor nextStageDoor;
+
+
     //Common
     //initialise win condition
     int winCount {10};
@@ -327,7 +330,7 @@ int main () {
                 enemyDir.tickUpdate();
 
                 //spawn boss?
-                if(killCount >= winCount && bossSpawned == false){
+                if(gameState == LEVEL1BOSS && bossSpawned == false){
                     slimeBoss = enemyDir.spawnSlimeBoss();
                     enemyVector.push_back(slimeBoss);
                     bSlimePtr = &enemyVector.back();
@@ -569,7 +572,11 @@ int main () {
             } break;
             case LEVEL1:
             {
-                level1(&protag, &killCount, &winCount, &camera);
+                level1(&protag, &killCount, &winCount, &camera, nextStageDoor, networkHandler);
+            } break;
+            case LEVEL1BOSS:
+            {
+                level1Boss(&protag, &killCount, &winCount, &camera, nextStageDoor, networkHandler);
             } break;
             case DEAD:
             {
@@ -646,21 +653,22 @@ void updateCameraClamp(Camera2D* camera, player* protag, float delta, int width,
         camera->offset.y = camera->offset.y + (height - camBottomRight.y);
 }
 
-void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
+void level1(player* protag, int* killCount, int* winCount, Camera2D* camera, stageDoor& nextStageDoor, networkInstance& networkHandler){
     //SCREEN ENTRY
     if(prevState != gameState){
         stageWidth = 1800;
         stageHeight = screenHeight;
         resetWorld(&platformVector, &enemyVector, &attackVector, gridContainer);
-        registerPlatform(&platformVector, 20,100,400,20);
-        registerPlatform(&platformVector, 600,200,100,20);
-        registerPlatform(&platformVector, 800,300,600,20);
-        registerPlatform(&platformVector, 600,400,100,20);
-        registerPlatform(&platformVector, 450,200,75,20);
-        registerPlatform(&platformVector, 1350,200,100,20);
-        registerPlatform(&platformVector, 1400,300,100,20);
+        int platformHeight{20};
+        registerPlatform(&platformVector, 20,100,400,platformHeight);
+        registerPlatform(&platformVector, 600,200,100,platformHeight);
+        registerPlatform(&platformVector, 800,300,600,platformHeight);
+        registerPlatform(&platformVector, 600,400,100,platformHeight);
+        registerPlatform(&platformVector, 450,200,75,platformHeight);
+        registerPlatform(&platformVector, 1350,200,100,platformHeight);
+        registerPlatform(&platformVector, 1400,300,100,platformHeight);
         registerPlatform(&platformVector, 0,stageHeight - 10,stageWidth,10);    //the floor
-        *winCount = 2;
+        *winCount = 10;
         *killCount = 0;
         bossSpawned = false;
         protag->initPlayer();
@@ -697,6 +705,32 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
     for(const auto& player: playerVector){
         DrawRectangle(player->hitbox.x, player->hitbox.y, player->hitbox.width, player->hitbox.height, player->entColor);
     }
+
+        //check win condition
+    if(*killCount >= *winCount){
+        //spawn and check the stage exit
+        nextStageDoor.onTick();
+        std::cout<<"Tick: "<<nextStageDoor.frameCount << "  yPos: "<<nextStageDoor.hitbox.y<<std::endl;
+        nextStageDoor.updateMovement();
+        if(nextStageDoor.checkActivation())
+        {
+            //transition
+            requestState = LEVEL1BOSS;
+            //send transition message
+            eventMessage msg;
+            msg.eValue = LEVEL1BOSS;
+            msg.eType = E_SCREEN;
+            //serialise and send
+            std::string sMsg{getSerialisedStr(msg)};
+            std::string sMsgHeader{getSerialisedStrHeader(sMsg.size(), M_EVENT)};
+            networkHandler.sendMessage(sMsgHeader,sMsg);
+        }
+        DrawRectangle(nextStageDoor.hitbox.x, nextStageDoor.hitbox.y, nextStageDoor.hitbox.width, nextStageDoor.hitbox.height, nextStageDoor.entColor);
+
+        // requestState = WIN;
+    }
+
+    //end world scope
     EndMode2D();
 
     //draw text
@@ -704,11 +738,99 @@ void level1(player* protag, int* killCount, int* winCount, Camera2D* camera){
     DrawText(TextFormat("Kills: %02i/%02i", *killCount, *winCount), 20, 20, 20, WHITE);
     DrawText(TextFormat("Health: %02i/%02i", protag->hp, protag->maxHp), screenWidth - 150, 20, 20, WHITE);
 
+
     EndDrawing();
-    //check win condition
+
+    //check death condition
+    if(protag->hp <= 0){
+        //go to death screen
+        requestState = DEAD;
+    }
+}
+
+void level1Boss(player* protag, int* killCount, int* winCount, Camera2D* camera, stageDoor& nextStageDoor, networkInstance& networkHandler){
+    //SCREEN ENTRY
+    if(prevState != gameState){
+        stageWidth = 1800;
+        stageHeight = screenHeight;
+        resetWorld(&platformVector, &enemyVector, &attackVector, gridContainer);
+        int platformHeight{20};
+        //4 left side platforms
+        registerPlatform(&platformVector, 0,100,50, platformHeight);
+        registerPlatform(&platformVector, 0,200,100,platformHeight);
+        registerPlatform(&platformVector, 0,300,150,platformHeight);
+        registerPlatform(&platformVector, 0,400,200,platformHeight);
+        //4 right side platforms
+        registerPlatform(&platformVector, stageWidth - 50, 100,50, platformHeight);
+        registerPlatform(&platformVector, stageWidth - 100,200,100,platformHeight);
+        registerPlatform(&platformVector, stageWidth - 150,300,150,platformHeight);
+        registerPlatform(&platformVector, stageWidth - 200,400,200,platformHeight);
+        //the floor
+        registerPlatform(&platformVector, 0,stageHeight - 10,stageWidth,10);
+        *winCount = 10;
+        *killCount = 0;
+        bossSpawned = false;
+        protag->initPlayer();
+    }
+    //draw - order of drawing determines layers
+    gamePaused = false;
+    //platform border
+    int platformBorder {2};
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    BeginMode2D(*camera);
+
+    //draw projectiles
+    for(auto& item: attackVector){
+        item.moveProjectile();
+        DrawRectangle(item.hitbox.x,item.hitbox.y,item.hitbox.width,item.hitbox.height,YELLOW);
+    }
+    for(auto& item: extAttackVector){
+        DrawRectangle(item.hitbox.x,item.hitbox.y,item.hitbox.width,item.hitbox.height,YELLOW);
+    }
+
+    //draw world
+    for(const auto& plat: platformVector){
+        DrawRectangle(plat.hitbox.x-platformBorder,plat.hitbox.y,plat.hitbox.width+platformBorder*2,plat.hitbox.height,GREEN);
+    }
+
+    //draw enemies
+    for(const auto& foe: enemyVector){
+        DrawRectangle(foe.hitbox.x,foe.hitbox.y,foe.hitbox.width,foe.hitbox.height,RED);
+    }
+
+    //draw players
+    for(const auto& player: playerVector){
+        DrawRectangle(player->hitbox.x, player->hitbox.y, player->hitbox.width, player->hitbox.height, player->entColor);
+    }
+
+        //check win condition
     if(*killCount >= *winCount){
+        //spawn and check the stage exit
+        nextStageDoor.onTick();
+        std::cout<<"Tick: "<<nextStageDoor.frameCount << "  yPos: "<<nextStageDoor.hitbox.y<<std::endl;
+        nextStageDoor.updateMovement();
+        if(nextStageDoor.checkActivation())
+        {
+            requestState = LEVEL1BOSS;
+        }
+        DrawRectangle(nextStageDoor.hitbox.x, nextStageDoor.hitbox.y, nextStageDoor.hitbox.width, nextStageDoor.hitbox.height, nextStageDoor.entColor);
+
         // requestState = WIN;
     }
+
+    //end world scope
+    EndMode2D();
+
+    //draw text
+    //winCondition
+    DrawText(TextFormat("Kills: %02i/%02i", *killCount, *winCount), 20, 20, 20, WHITE);
+    DrawText(TextFormat("Health: %02i/%02i", protag->hp, protag->maxHp), screenWidth - 150, 20, 20, WHITE);
+
+
+    EndDrawing();
+
     //check death condition
     if(protag->hp <= 0){
         //go to death screen
