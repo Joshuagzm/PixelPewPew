@@ -1,4 +1,4 @@
-# PixelPewPew - A hobby project WIP
+# PixelPlatformer - A hobby project WIP
 
 A simple platformer developed in C++. Graphics and drawing done using the Raylib library, and networking done using the ASIO library. 
 
